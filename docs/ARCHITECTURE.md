@@ -112,6 +112,11 @@ Wygenerowanego kodu nie commitujemy w żadnym języku.
 23. **Tura 0 oznacza nowy przebieg.** Serwer mózgów żyje dłużej niż świat. Gdy dostaje `tick = 0`, mózgi porzucają niedokończone przejście z poprzedniego przebiegu, a wiedzę zostawiają.
 24. **Każda postać losuje z własnego strumienia.** Ziarno mózgu postaci to `seed * 1 000 003 + npc_id`, więc jej ruchy nie zależą od kolejności ani liczby postaci w zapytaniu. Serwer obsługuje zapytania jednym wątkiem.
 25. **Plansza 20×20 liczy się razem ze ścianą.** W środku zostaje 18×18 pól, a udziały jedzenia, wody i lawy liczymy od tych 324 pól.
+26. **Kolejność w turze.** Każda faza obejmuje wszystkie postacie, zanim ruszy następna: (1) ruch albo jedzenie i picie, (2) wzrost głodu i pragnienia, (3) utrata energii za potrzeby od progu i za lawę, (4) zegar idzie o jeden i odrasta jedzenie, (5) rozliczenie: śmierć przy zerowej energii albo ucięcie epizodu na limicie życia, potem nagroda. Gdy dwie postacie jedzą to samo pole w jednej turze, dostaje je ta o niższym numerze.
+27. **Śmierć zastępuje nagrodę za turę.** W turze śmierci postać dostaje tylko karę, bez plusa za przeżycie i za jedzenie. Ucięcie epizodu zostawia zwykłą nagrodę.
+28. **Plansza z seeda, spójna bez lawy.** Generator losuje układ do skutku, aż wszystkie pola poza lawą i ścianą tworzą jedną całość. Odrodzenie losuje pole z tej całości.
+29. **Regeneracja energii jako parametr, domyślnie wyłączona.** `energy_regen: 0` zachowuje zasadę ze specyfikacji: energia tylko spada. Wartość dodatnia przywraca energię w turach bez strat.
+30. **Świat zgłasza koniec życia zdarzeniem.** `WorldListener` dostaje `LifeEnded` z długością życia i przyczyną. Statystyki i widok słuchają, a nie zaglądają do stanu postaci.
 
 ## Co dochodzi później
 

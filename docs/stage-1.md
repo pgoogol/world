@@ -34,12 +34,13 @@ Wartości do strojenia, trzymane w konfiguracji.
 
 | Parametr | Wartość |
 |---|---|
-| Plansza | 20×20, ściana dookoła |
+| Plansza | 20×20 razem ze ścianą dookoła, w środku 18×18 |
 | Postacie | 5 |
 | Udział pól jedzenia / wody / lawy | 8% / 5% / 5% |
 | Odrastanie jedzenia | 50 tur |
 | Głód i pragnienie | +1 na turę, maksimum 100 |
 | Próg potrzeby | od 80 energia spada o 1 na turę za każdą potrzebę |
+| Regeneracja energii | 0 (wyłączona); wartość dodatnia przywraca energię w turach bez strat |
 | Lawa | −25 energii za turę |
 | Jedzenie / picie | −40 głodu / −40 pragnienia |
 | Limit życia | 2000 tur |
@@ -63,7 +64,7 @@ Wartości do strojenia, trzymane w konfiguracji.
 
   *Gotowe, gdy:* świat z prawdziwym serwerem w Pythonie przechodzi 1000 tur bez błędu.
 
-- [ ] **1.3 Zasady świata.** Pola, odrastanie jedzenia, potrzeby, energia, lawa, śmierć, odrodzenie, limit życia, nagroda, ziarno losowości.
+- [x] **1.3 Zasady świata.** Pola, odrastanie jedzenia, potrzeby, energia, lawa, śmierć, odrodzenie, limit życia, nagroda, ziarno losowości.
 
   *Gotowe, gdy:* każda zasada ma test jednostkowy, a dwa przebiegi z tym samym seedem dają ten sam stan po 1000 turach.
 
