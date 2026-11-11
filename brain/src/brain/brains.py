@@ -44,7 +44,9 @@ class QLearningBrain:
     """Tabular Q-learning with epsilon-greedy action choice.
 
     The table is a dict: encoded observation -> six action values. It grows only by
-    situations the NPC has actually been in.
+    situations the NPC has actually been in. Next to it the brain counts how often it has
+    been in each situation and how often it has tried each action there; the tuning
+    variant turns those counters into epsilon and alpha.
     """
 
     def __init__(self, rng: random.Random, gamma: float, need_levels: tuple[int, int], tuning, learning: bool = True):
@@ -55,6 +57,8 @@ class QLearningBrain:
         self._learning = learning  # False in show mode: no updates, minimal epsilon
         self._previous: tuple[bytes, int] | None = None
         self.q: dict[bytes, list[float]] = {}
+        self.state_visits: dict[bytes, int] = {}
+        self.pair_tries: dict[bytes, list[int]] = {}
         self.steps = 0
 
     def start_run(self) -> None:
@@ -66,7 +70,12 @@ class QLearningBrain:
             self._learn(view, state)
 
         values = self.q.setdefault(state, [0.0] * ACTION_COUNT)
-        epsilon = self._tuning.epsilon(self.steps) if self._learning else self._tuning.epsilon_floor
+        if self._learning:
+            visits = self.state_visits.get(state, 0)
+            epsilon = self._tuning.epsilon(self.steps, visits)
+            self.state_visits[state] = visits + 1
+        else:
+            epsilon = self._tuning.epsilon_floor
         if self._rng.random() < epsilon:
             action = self._rng.randrange(ACTION_COUNT)
         else:
@@ -92,16 +101,26 @@ class QLearningBrain:
         else:
             target = view.reward + self._gamma * self._best_value(state)
 
+        tries = self.pair_tries.setdefault(previous_state, [0] * ACTION_COUNT)
+        tries[previous_action] += 1
+        alpha = self._tuning.alpha(tries[previous_action])
         values = self.q[previous_state]
-        values[previous_action] += self._tuning.alpha() * (target - values[previous_action])
+        values[previous_action] += alpha * (target - values[previous_action])
 
     def _best_value(self, state: bytes) -> float:
         values = self.q.get(state)
         return max(values) if values is not None else 0.0
 
     def export_state(self) -> dict:
-        return {"q": self.q, "steps": self.steps}
+        return {
+            "q": self.q,
+            "state_visits": self.state_visits,
+            "pair_tries": self.pair_tries,
+            "steps": self.steps,
+        }
 
     def import_state(self, state: dict) -> None:
         self.q = state["q"]
+        self.state_visits = state["state_visits"]
+        self.pair_tries = state["pair_tries"]
         self.steps = state["steps"]

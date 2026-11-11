@@ -121,6 +121,7 @@ Wygenerowanego kodu nie commitujemy w żadnym języku.
 32. **Poziomy potrzeb z tych samych progów co zasady świata.** Granice 50 i 80 w `brain.need_levels` pokrywają się z progiem nagrody za jedzenie i progiem utraty energii, więc postać rozróżnia dokładnie te stany, które świat traktuje inaczej. Energia nie wchodzi do klucza.
 33. **Remisy w ocenach rozstrzyga losowanie z ziarna postaci.** Świeża tablica ma same zera i bez losowania postać zawsze wybierałaby „stój”.
 34. **Tablice w jednym pliku pickle na wariant uczenia.** `brain/data/qtables-<wariant>.pkl`, zapis przez plik tymczasowy i podmianę. Serwer wczytuje plik przy starcie, chyba że dostanie `--fresh`. Tryb `--mode show` niczego nie zapisuje i nie uczy.
+35. **Liczniki samostrojenia.** Epsilon bierze liczbę wcześniejszych odwiedzin sytuacji, więc pierwsza wizyta daje 1. Alpha bierze liczbę prób pary sytuacja–akcja razem z bieżącą, więc pierwsza aktualizacja przyjmuje cały cel. Liczniki zapisują się razem z tablicą Q. W trybie pokazu mózg ich nie rusza.
 
 ## Co dochodzi później
 

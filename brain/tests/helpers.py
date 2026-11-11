@@ -2,9 +2,9 @@
 
 import random
 
-from brain.config import FixedTuningConfig
+from brain.config import FixedTuningConfig, SelfTuningConfig
 from brain.proto import brain_pb2
-from brain.tuning import FixedSchedule
+from brain.tuning import FixedSchedule, SelfTuning
 
 NEED_LEVELS = (50, 80)
 EMPTY = brain_pb2.CELL_EMPTY
@@ -33,6 +33,10 @@ def view(obs=None, reward=0.0, died=False, truncated=False, final=None, npc_id=0
 def fixed(alpha=0.5, epsilon_start=0.0, epsilon_end=0.0, decay_ticks=100) -> FixedSchedule:
     """By default a greedy brain (epsilon 0), so tests control which action is taken."""
     return FixedSchedule(FixedTuningConfig(alpha, epsilon_start, epsilon_end, decay_ticks))
+
+
+def self_tuning(epsilon_min=0.05, alpha_min=0.1) -> SelfTuning:
+    return SelfTuning(SelfTuningConfig(epsilon_min, alpha_min))
 
 
 def rng(seed=1) -> random.Random:

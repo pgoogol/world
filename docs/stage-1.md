@@ -72,7 +72,7 @@ Wartości do strojenia, trzymane w konfiguracji.
 
   *Gotowe, gdy:* testy w `pytest` sprawdzają aktualizację Q (także po śmierci i po ucięciu epizodu), kodowanie obserwacji oraz zapis i odczyt tablic.
 
-- [ ] **1.5 Samostrojenie.** Liczniki odwiedzin sytuacji i par sytuacja–akcja, epsilon i alpha liczone z liczników, zapis i odczyt liczników razem z tablicami Q, wybór wariantu w konfiguracji.
+- [x] **1.5 Samostrojenie.** Liczniki odwiedzin sytuacji i par sytuacja–akcja, epsilon i alpha liczone z liczników, zapis i odczyt liczników razem z tablicami Q, wybór wariantu w konfiguracji.
 
   *Gotowe, gdy:* testy w `pytest` sprawdzają, że epsilon i alpha zależą od liczników i nie spadają poniżej dolnych granic, a przełącznik w konfiguracji wybiera samostrojenie albo stały harmonogram.
 

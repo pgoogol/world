@@ -27,6 +27,8 @@ def test_saved_tables_come_back_unchanged(tmp_path):
     assert set(loaded) == {0, 3}
     assert loaded[0]["q"] == brains[0].q
     assert loaded[3]["q"] == brains[3].q
+    assert loaded[0]["state_visits"] == brains[0].state_visits
+    assert loaded[0]["pair_tries"] == brains[0].pair_tries
     assert loaded[0]["steps"] == 100
 
 
@@ -39,6 +41,8 @@ def test_loaded_brain_continues_where_the_saved_one_stopped(tmp_path):
     restored.import_state(load_brains(path)[0])
 
     assert restored.q == original.q
+    assert restored.state_visits == original.state_visits
+    assert restored.pair_tries == original.pair_tries
     assert restored.steps == original.steps
 
 

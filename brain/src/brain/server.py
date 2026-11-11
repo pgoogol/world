@@ -17,7 +17,7 @@ from brain.config import BRAIN_DIR, DEFAULT_CONFIG, BrainConfig, load_config
 from brain.group import BrainGroup
 from brain.proto import brain_pb2_grpc
 from brain.storage import load_brains
-from brain.tuning import FixedSchedule
+from brain.tuning import FixedSchedule, SelfTuning
 
 
 class BrainService(brain_pb2_grpc.BrainServicer):
@@ -37,6 +37,8 @@ def tables_path(config: BrainConfig, data_dir: Path | None = None) -> Path:
 def build_tuning(config: BrainConfig):
     if config.tuning == "fixed":
         return FixedSchedule(config.fixed)
+    if config.tuning == "self":
+        return SelfTuning(config.self_tuning)
     raise ValueError(f"Unknown tuning variant: {config.tuning!r}")
 
 
