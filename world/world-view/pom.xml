@@ -21,7 +21,7 @@
         </dependency>
         <dependency>
             <groupId>com.pgoogol.npcworld</groupId>
-            <artifactId>world-brain</artifactId>
+            <artifactId>world-app</artifactId>
         </dependency>
         <dependency>
             <groupId>org.openjfx</groupId>
@@ -29,13 +29,4 @@
         </dependency>
     </dependencies>
 
-    <build>
-        <plugins>
-            <!-- mainClass is added in step 1.7, together with the window itself -->
-            <plugin>
-                <groupId>org.openjfx</groupId>
-                <artifactId>javafx-maven-plugin</artifactId>
-            </plugin>
-        </plugins>
-    </build>
 </project>

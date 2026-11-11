@@ -20,7 +20,7 @@ Przeczytaj je przed pierwszą zmianą w sesji:
 ## Zasady architektury
 
 1. Świat (Java) jest sędzią: trzyma zasady, czas i zasoby oraz liczy nagrody. Mózgi (Python) dostają tylko to, co postać widzi, i odsyłają ruchy.
-2. `world-core` nie zależy od JavaFX ani gRPC i działa bez okna.
+2. `world-core` nie zależy od JavaFX ani gRPC i działa bez okna. Start bez okna mieszka w `world-app`, okno w `world-view`.
 3. Zegar należy do świata: jedna tura to jedno wywołanie `Brain.Step` za całą grupę.
 4. Kontrakt między procesami żyje tylko w `proto/brain.proto`. Kod z proto generuje build albo skrypt; nie edytuj go ręcznie.
 5. Każde losowanie w Javie i Pythonie bierze ziarno z konfiguracji. Ten sam seed daje ten sam przebieg co do tury.
@@ -58,4 +58,16 @@ uv run python scripts/gen_proto.py
 uv run pytest
 ```
 
-Start serwera mózgów, tryb treningu i tryb pokazu dopisują kroki, które je tworzą (1.2, 1.6, 1.7).
+Start serwera mózgów, w katalogu `brain/` (`--kind random` daje mózg losowy; Ctrl+C zatrzymuje):
+
+```
+uv run python -m brain.server
+```
+
+Świat bez okna przeciwko działającemu serwerowi, w katalogu głównym repo, po `.\mvnw.cmd verify`. `java` w PATH może wskazywać starsze JDK, dlatego przez `JAVA_HOME`:
+
+```
+& "$env:JAVA_HOME\bin\java" -jar world\world-app\target\world-app.jar --ticks 1000
+```
+
+Tryb treningu i tryb pokazu dopisują kroki, które je tworzą (1.6, 1.7).

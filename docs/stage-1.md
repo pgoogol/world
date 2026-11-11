@@ -55,11 +55,11 @@ Wartości do strojenia, trzymane w konfiguracji.
 
 ## Kroki
 
-- [x] **1.1 Szkielet repo.** Maven w `world/` z modułami `world-core`, `world-brain`, `world-view`. Projekt Pythona w `brain/` z uv. Plik `proto/brain.proto` według szkicu z [ARCHITECTURE.md](ARCHITECTURE.md) i generowanie kodu w obu językach. Plik `.gitignore`.
+- [x] **1.1 Szkielet repo.** Maven w `world/` z modułami `world-core`, `world-brain`, `world-view` (krok 1.2 dołożył `world-app`). Projekt Pythona w `brain/` z uv. Plik `proto/brain.proto` według szkicu z [ARCHITECTURE.md](ARCHITECTURE.md) i generowanie kodu w obu językach. Plik `.gitignore`.
 
   *Gotowe, gdy:* build Javy i `pytest` przechodzą na pustych testach, a sekcja „Komendy” w `CLAUDE.md` ma działające polecenia.
 
-- [ ] **1.2 Połączenie.** Serwer mózgów odpowiada losowymi ruchami. Pętla świata bez okna woła `Step` co turę dla 5 postaci na pustej planszy. Testy Javy używają podstawionego mózgu (gRPC in-process).
+- [x] **1.2 Połączenie.** Serwer mózgów odpowiada losowymi ruchami. Pętla świata bez okna woła `Step` co turę dla 5 postaci na pustej planszy. Testy Javy używają podstawionego mózgu (gRPC in-process).
 
   *Gotowe, gdy:* świat z prawdziwym serwerem w Pythonie przechodzi 1000 tur bez błędu.
 
@@ -100,3 +100,4 @@ Każde pytanie ma odpowiedź domyślną, więc praca nie musi czekać.
 - Format zapisu tablic Q? Domyślnie pickle w katalogu danych mózgu.
 - Kod Pythona z proto: commitować czy generować skryptem? Domyślnie generować skryptem i nie commitować.
 - Format konfiguracji? Domyślnie `config/stage-1.yaml`, czytany przez świat i mózgi.
+- Gdzie mieszka start bez okna? Przyjęte w kroku 1.2: osobny moduł `world-app`.

@@ -14,7 +14,8 @@ Procesy łączy gRPC na `localhost:50051`. Mózgi są serwerem. Świat jest klie
 | Świat (Java)                | -------------------> | Mózgi (Python)              |
 |   world-core: zasady, czas  |                      |   serwer gRPC               |
 |   world-brain: klient gRPC  | <------------------- |   Q-learning dla postaci    |
-|   world-view: okno JavaFX   |     StepResponse     |                             |
+|   world-app: start, config  |     StepResponse     |                             |
+|   world-view: okno JavaFX   |                      |                             |
 +-----------------------------+                      +-----------------------------+
 ```
 
@@ -28,6 +29,7 @@ Procesy łączy gRPC na `localhost:50051`. Mózgi są serwerem. Świat jest klie
 ├── world/                 Java 25, Maven (parent POM, Maven Wrapper)
 │   ├── world-core/        plansza, postacie, zasady, tury, nagrody
 │   ├── world-brain/       klient gRPC
+│   ├── world-app/         start bez okna: konfiguracja, pętla symulacji, statystyki
 │   └── world-view/        okno JavaFX
 ├── brain/                 Python 3.14, uv
 │   ├── src/brain/         serwer gRPC i Q-learning
@@ -42,8 +44,9 @@ Procesy łączy gRPC na `localhost:50051`. Mózgi są serwerem. Świat jest klie
 | Obszar | Wybór | Dlaczego |
 |---|---|---|
 | Świat | JDK 25 (LTS) | rekordy, sealed interfaces i `switch` z dopasowaniem wzorców do opisu akcji i zdarzeń; para z JavaFX 25 |
-| Widok | JavaFX 25: `Canvas`, `AnimationTimer`, `LineChart` | okno na pulpicie bez strony WWW, uruchamiane przez `javafx-maven-plugin` |
-| Build Javy | Maven, trzy moduły | `world-core` bez zależności od widoku i sieci |
+| Widok | JavaFX 25: `Canvas`, `AnimationTimer`, `LineChart` | okno na pulpicie bez strony WWW |
+| Build Javy | Maven, cztery moduły | `world-core` bez zależności od widoku i sieci |
+| Konfiguracja | YAML: SnakeYAML w `world-app`, PyYAML w mózgach | jeden plik `config/stage-1.yaml` dla obu procesów |
 | Testy Javy | JUnit 5 (5.14), AssertJ | test dla każdej zasady świata |
 | Mózgi | Python 3.14 | biblioteki mają gotowe paczki dla tej wersji |
 | Środowisko Pythona | uv, `pyproject.toml` | jedno narzędzie zamiast pip, venv i pyenv |
@@ -103,6 +106,12 @@ Wygenerowanego kodu nie commitujemy w żadnym języku.
 17. **Protobuf w Javie przypięty do wersji `protoc`.** grpc-java ciągnie domyślnie protobuf-java 3.x, a kod generujemy przez `protoc` 4.x. `protobuf-bom` w parent POM wyrównuje obie wersje.
 18. **Kod Pythona z proto jako podpakiet `brain.proto`.** Skrypt mapuje `proto/` na wirtualną ścieżkę `brain/proto`, dzięki czemu wygenerowane moduły importują się nawzajem przez pakiet, bez poprawiania importów po generowaniu.
 19. **Obserwacja końcowa i zero „nie ustawiono” w kontrakcie.** Bez `final_observation` mózg nie policzy celu Q po ucięciu epizodu. Zero zarezerwowane w enumach odróżnia zgubiony ruch od świadomego „stój”.
+20. **Czwarty moduł `world-app`.** Start bez okna potrzebuje świata, klienta gRPC, czytania YAML-a i statystyk, ale nie JavaFX. `world-core` dostaje gotowy `WorldConfig` i nie zna formatu pliku. `world-view` zależy od `world-app`.
+21. **Świat rozmawia z mózgami przez port `Brain` w `world-core`.** `GrpcBrain` w `world-brain` jest jedną z implementacji, testy świata podstawiają własną. Odpowiedź bez ruchu dla postaci, z ruchem zdublowanym albo z `ACTION_UNSPECIFIED` kończy turę wyjątkiem.
+22. **Uruchamialne jary zamiast `javafx-maven-plugin`.** `maven-jar-plugin` wpisuje klasę startową i classpath do manifestu, a `maven-dependency-plugin` kopiuje zależności do `target/lib`. Program startuje przez `java -jar` bez instalowania modułów w lokalnym repozytorium Mavena.
+23. **Tura 0 oznacza nowy przebieg.** Serwer mózgów żyje dłużej niż świat. Gdy dostaje `tick = 0`, mózgi porzucają niedokończone przejście z poprzedniego przebiegu, a wiedzę zostawiają.
+24. **Każda postać losuje z własnego strumienia.** Ziarno mózgu postaci to `seed * 1 000 003 + npc_id`, więc jej ruchy nie zależą od kolejności ani liczby postaci w zapytaniu. Serwer obsługuje zapytania jednym wątkiem.
+25. **Plansza 20×20 liczy się razem ze ścianą.** W środku zostaje 18×18 pól, a udziały jedzenia, wody i lawy liczymy od tych 324 pól.
 
 ## Co dochodzi później
 

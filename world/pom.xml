@@ -13,6 +13,7 @@
     <modules>
         <module>world-core</module>
         <module>world-brain</module>
+        <module>world-app</module>
         <module>world-view</module>
     </modules>
 
@@ -26,11 +27,13 @@
         <javafx.version>25.0.5</javafx.version>
         <junit.version>5.14.4</junit.version>
         <assertj.version>3.27.7</assertj.version>
+        <snakeyaml.version>2.7</snakeyaml.version>
 
         <maven-compiler-plugin.version>3.16.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.6.1</maven-surefire-plugin.version>
         <protobuf-maven-plugin.version>5.1.12</protobuf-maven-plugin.version>
-        <javafx-maven-plugin.version>0.0.8</javafx-maven-plugin.version>
+        <maven-jar-plugin.version>3.5.1</maven-jar-plugin.version>
+        <maven-dependency-plugin.version>3.11.0</maven-dependency-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -44,6 +47,16 @@
                 <groupId>com.pgoogol.npcworld</groupId>
                 <artifactId>world-brain</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.pgoogol.npcworld</groupId>
+                <artifactId>world-app</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.yaml</groupId>
+                <artifactId>snakeyaml</artifactId>
+                <version>${snakeyaml.version}</version>
             </dependency>
             <!-- protobuf-bom first: it pins the runtime to the protoc version used for code generation -->
             <dependency>
@@ -112,10 +125,40 @@
                     <artifactId>protobuf-maven-plugin</artifactId>
                     <version>${protobuf-maven-plugin.version}</version>
                 </plugin>
+                <!-- Runnable jars (world-app, world-view): `java -jar target/<name>.jar`, dependencies in target/lib.
+                     A module opts in by naming both plugins and setting the app.mainClass property. -->
                 <plugin>
-                    <groupId>org.openjfx</groupId>
-                    <artifactId>javafx-maven-plugin</artifactId>
-                    <version>${javafx-maven-plugin.version}</version>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>${maven-jar-plugin.version}</version>
+                    <configuration>
+                        <archive>
+                            <manifest>
+                                <addClasspath>true</addClasspath>
+                                <classpathPrefix>lib/</classpathPrefix>
+                                <useUniqueVersions>false</useUniqueVersions>
+                                <mainClass>${app.mainClass}</mainClass>
+                            </manifest>
+                        </archive>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <version>${maven-dependency-plugin.version}</version>
+                    <executions>
+                        <execution>
+                            <id>copy-runtime-libs</id>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>copy-dependencies</goal>
+                            </goals>
+                            <configuration>
+                                <includeScope>runtime</includeScope>
+                                <outputDirectory>${project.build.directory}/lib</outputDirectory>
+                            </configuration>
+                        </execution>
+                    </executions>
                 </plugin>
             </plugins>
         </pluginManagement>
