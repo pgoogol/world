@@ -12,6 +12,7 @@ import com.pgoogol.npcworld.core.Action;
 import com.pgoogol.npcworld.core.CellType;
 import com.pgoogol.npcworld.core.NpcView;
 import com.pgoogol.npcworld.core.Observation;
+import com.pgoogol.npcworld.core.Position;
 import io.grpc.Server;
 import io.grpc.inprocess.InProcessChannelBuilder;
 import io.grpc.inprocess.InProcessServerBuilder;
@@ -51,10 +52,12 @@ class GrpcBrainTest {
     @Test
     void sendsWhatTheNpcSeesAndTheOutcomeOfItsPreviousAction() throws Exception {
         startBrain(request -> stayFor(request));
-        Observation current = new Observation(nineCells(CellType.FOOD), 55, 12, 90);
-        Observation beforeReset = new Observation(nineCells(CellType.LAVA), 70, 81, 3);
+        Observation current = new Observation(nineCells(CellType.FOOD), 55, 12, 90, new Position(7, 3));
+        Observation beforeReset = new Observation(nineCells(CellType.LAVA), 70, 81, 3, new Position(6, 3));
 
-        brain.decide(17, List.of(new NpcView(4, current, 1.1, false, true, Optional.of(beforeReset))));
+        brain.npcsRetired(List.of(2, 9));
+        brain.decide(17,
+                List.of(new NpcView(4, current, 1.1, false, true, Optional.of(beforeReset), List.of(1, 3))));
 
         assertThat(lastRequest.getTick()).isEqualTo(17);
         var npc = lastRequest.getNpcs(0);
@@ -68,6 +71,11 @@ class GrpcBrainTest {
         assertThat(npc.getObservation().getEnergy()).isEqualTo(90);
         assertThat(npc.getFinalObservation().getSurroundingsList()).containsOnly(Cell.CELL_LAVA);
         assertThat(npc.getFinalObservation().getThirst()).isEqualTo(81);
+        assertThat(npc.getObservation().getX()).isEqualTo(7);
+        assertThat(npc.getObservation().getY()).isEqualTo(3);
+        assertThat(npc.getFinalObservation().getX()).isEqualTo(6);
+        assertThat(npc.getNeighbourIdsList()).containsExactly(1, 3);
+        assertThat(lastRequest.getRetiredNpcIdsList()).containsExactly(2, 9);
     }
 
     @Test
@@ -77,6 +85,18 @@ class GrpcBrainTest {
         brain.decide(0, List.of(view(0)));
 
         assertThat(lastRequest.getNpcs(0).hasFinalObservation()).isFalse();
+        assertThat(lastRequest.getRetiredNpcIdsList()).isEmpty();
+    }
+
+    @Test
+    void reportsRetiredNpcsOnlyOnce() throws Exception {
+        startBrain(request -> stayFor(request));
+        brain.npcsRetired(List.of(5));
+        brain.decide(0, List.of(view(0)));
+
+        brain.decide(1, List.of(view(0)));
+
+        assertThat(lastRequest.getRetiredNpcIdsList()).isEmpty();
     }
 
     @Test
@@ -140,8 +160,8 @@ class GrpcBrainTest {
     }
 
     private static NpcView view(int npcId) {
-        return new NpcView(npcId, new Observation(nineCells(CellType.EMPTY), 0, 0, 100), 0, false, false,
-                Optional.empty());
+        return new NpcView(npcId, new Observation(nineCells(CellType.EMPTY), 0, 0, 100, new Position(1, 1)), 0, false,
+                false, Optional.empty(), List.of());
     }
 
     private static List<CellType> nineCells(CellType type) {

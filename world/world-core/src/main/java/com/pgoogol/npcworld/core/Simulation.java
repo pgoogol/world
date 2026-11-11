@@ -15,6 +15,10 @@ public final class Simulation {
     }
 
     public void tick() {
+        List<Integer> retired = world.drainRetired();
+        if (!retired.isEmpty()) {
+            brain.npcsRetired(retired);
+        }
         List<NpcView> views = world.views();
         Map<Integer, Action> actions = brain.decide(world.tick(), views);
         world.step(actions);

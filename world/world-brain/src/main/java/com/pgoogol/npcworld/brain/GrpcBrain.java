@@ -9,6 +9,7 @@ import com.pgoogol.npcworld.core.NpcView;
 import io.grpc.Grpc;
 import io.grpc.InsecureChannelCredentials;
 import io.grpc.ManagedChannel;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +20,7 @@ public final class GrpcBrain implements Brain, AutoCloseable {
 
     private final ManagedChannel channel;
     private final BrainGrpc.BrainBlockingStub stub;
+    private final List<Integer> retiredNpcIds = new ArrayList<>();
 
     public GrpcBrain(ManagedChannel channel) {
         this.channel = channel;
@@ -32,7 +34,8 @@ public final class GrpcBrain implements Brain, AutoCloseable {
 
     @Override
     public Map<Integer, Action> decide(long tick, List<NpcView> views) {
-        StepResponse response = stub.step(ProtoMapper.toRequest(tick, views));
+        StepResponse response = stub.step(ProtoMapper.toRequest(tick, views, retiredNpcIds));
+        retiredNpcIds.clear();
 
         Map<Integer, Action> actions = new HashMap<>();
         for (NpcAction npcAction : response.getActionsList()) {
@@ -50,6 +53,12 @@ public final class GrpcBrain implements Brain, AutoCloseable {
             throw new BrainProtocolException("Brain sent actions for NPCs that were not in the request");
         }
         return actions;
+    }
+
+    /** Sent with the next {@code Step}, so the tick still costs a single call. */
+    @Override
+    public void npcsRetired(List<Integer> npcIds) {
+        retiredNpcIds.addAll(npcIds);
     }
 
     @Override

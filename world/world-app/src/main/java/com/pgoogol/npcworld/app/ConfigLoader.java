@@ -47,6 +47,9 @@ public final class ConfigLoader {
                 world.integer("energy_max"),
                 world.integer("energy_regen"),
                 world.integer("life_limit"),
+                world.numberOr("lifespan_ticks", 0).longValue(),
+                world.numberOr("lifespan_spread", 0).doubleValue(),
+                world.numberOr("aging_start_tick", 0).longValue(),
                 new RewardConfig(
                         rewards.real("per_tick"),
                         rewards.real("consume"),
@@ -78,6 +81,11 @@ public final class ConfigLoader {
                 return number;
             }
             throw new IllegalArgumentException("Missing or non-numeric config value: " + prefix + key);
+        }
+
+        /** For settings added after stage 1: older config files do not have them. */
+        Number numberOr(String key, Number fallback) {
+            return values.containsKey(key) ? number(key) : fallback;
         }
 
         int integer(String key) {

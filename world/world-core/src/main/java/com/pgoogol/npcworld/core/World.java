@@ -12,11 +12,12 @@ import java.util.Random;
  * <p>Order within one tick, for all NPCs before the next phase starts:
  * <ol>
  *   <li>action: move (a wall blocks it) or eat/drink on the current cell,</li>
- *   <li>hunger and thirst grow,</li>
+ *   <li>hunger and thirst grow, the NPC gets one tick older,</li>
  *   <li>energy drops for every need at or above the threshold and for standing on lava,</li>
  *   <li>the clock advances and eaten food whose time has come grows back,</li>
- *   <li>outcome: death at zero energy (penalty, respawn) or, at the life limit, truncation
- *       (no penalty, reset); the reward for the tick is set here.</li>
+ *   <li>outcome: collapse at zero energy (penalty, respawn with the same memory) or, at the life limit,
+ *       truncation (no penalty, reset); the reward for the tick is set here,</li>
+ *   <li>old age: an NPC that reached its lifespan is gone for good and a newborn takes its place.</li>
  * </ol>
  */
 public final class World {
@@ -26,6 +27,8 @@ public final class World {
     private final Board board;
     private final List<Npc> npcs = new ArrayList<>();
     private final List<WorldListener> listeners = new ArrayList<>();
+    private final List<Integer> retired = new ArrayList<>();
+    private int nextNpcId;
     private long tick;
 
     /** Board and spawn positions come from the seed in the config. */
@@ -42,9 +45,14 @@ public final class World {
         this.config = config;
         this.random = random;
         this.board = board != null ? board : BoardGenerator.generate(config, random);
-        for (int id = 0; id < config.npcs(); id++) {
-            Npc npc = new Npc(id);
+        for (int slot = 0; slot < config.npcs(); slot++) {
+            Npc npc = new Npc(nextNpcId++);
             respawn(npc);
+            if (config.agingEnabled()) {
+                npc.lifespan = drawLifespan();
+                // Founders start at evenly spread ages, so they die one after another, not all at once.
+                npc.totalAge = (long) slot * config.lifespanTicks() / config.npcs();
+            }
             npcs.add(npc);
         }
     }
@@ -62,13 +70,14 @@ public final class World {
         List<NpcView> views = new ArrayList<>(npcs.size());
         for (Npc npc : npcs) {
             views.add(new NpcView(npc.id, observe(npc), npc.reward, npc.died, npc.truncated,
-                    Optional.ofNullable(npc.finalObservation)));
+                    Optional.ofNullable(npc.finalObservation), neighboursOf(npc)));
         }
         return views;
     }
 
     /** Applies one action per NPC and advances the clock by one tick. */
     public void step(Map<Integer, Action> actions) {
+        boolean ageing = config.agingEnabled() && tick >= config.agingStartTick();
         double[] consumeRewards = new double[npcs.size()];
         for (int i = 0; i < npcs.size(); i++) {
             Npc npc = npcs.get(i);
@@ -80,6 +89,9 @@ public final class World {
             growNeeds(npc);
             drainEnergy(npc);
             npc.age++;
+            if (ageing || !config.agingEnabled()) {
+                npc.totalAge++;
+            }
         }
 
         tick++;
@@ -88,6 +100,24 @@ public final class World {
         for (int i = 0; i < npcs.size(); i++) {
             settle(npcs.get(i), consumeRewards[i]);
         }
+
+        if (config.agingEnabled()) {
+            for (int slot = 0; slot < npcs.size(); slot++) {
+                if (npcs.get(slot).totalAge >= npcs.get(slot).lifespan) {
+                    replaceWithNewborn(slot);
+                }
+            }
+        }
+    }
+
+    /**
+     * Ids of the NPCs that died of old age since the previous call. The simulation passes them
+     * to the brain, which then drops their memory.
+     */
+    public List<Integer> drainRetired() {
+        List<Integer> ids = List.copyOf(retired);
+        retired.clear();
+        return ids;
     }
 
     public WorldSnapshot snapshot() {
@@ -95,9 +125,9 @@ public final class World {
                 npcs.stream().map(Npc::snapshot).toList());
     }
 
-    /** For tests: direct access to an NPC's state. */
-    Npc npc(int id) {
-        return npcs.get(id);
+    /** For tests: direct access to the NPC in a slot (slot = id until someone dies of old age). */
+    Npc npc(int slot) {
+        return npcs.get(slot);
     }
 
     /** Returns the reward earned by eating or drinking, zero for any other action. */
@@ -170,9 +200,62 @@ public final class World {
     }
 
     private void endLife(Npc npc, LifeEnded.Cause cause) {
-        LifeEnded event = new LifeEnded(npc.id, tick, npc.age, cause);
+        LifeEnded event = new LifeEnded(npc.id, tick, npc.age, cause, npc.generation, npc.totalAge);
         respawn(npc);
         listeners.forEach(listener -> listener.onLifeEnded(event));
+    }
+
+    /** Old age: the NPC in the slot is gone and a newborn with a new id appears next to a living NPC. */
+    private void replaceWithNewborn(int slot) {
+        Npc old = npcs.get(slot);
+        Npc newborn = new Npc(nextNpcId++);
+        newborn.generation = old.generation + 1;
+        newborn.lifespan = drawLifespan();
+        newborn.hunger = 0;
+        newborn.thirst = 0;
+        newborn.energy = config.energyMax();
+
+        Integer parentId = null;
+        if (npcs.size() > 1) {
+            int parentSlot = random.nextInt(npcs.size() - 1);
+            if (parentSlot >= slot) {
+                parentSlot++;
+            }
+            Npc parent = npcs.get(parentSlot);
+            parentId = parent.id;
+            newborn.position = safeCellAround(parent.position);
+        }
+        if (newborn.position == null) {
+            respawn(newborn);
+        }
+
+        npcs.set(slot, newborn);
+        retired.add(old.id);
+        NpcRetired retiredEvent = new NpcRetired(old.id, tick, old.totalAge, old.generation);
+        NpcBorn bornEvent = new NpcBorn(newborn.id, tick, newborn.generation, Optional.ofNullable(parentId));
+        listeners.forEach(listener -> {
+            listener.onNpcRetired(retiredEvent);
+            listener.onNpcBorn(bornEvent);
+        });
+    }
+
+    /** A random safe cell in the 3x3 around a position, or null when there is none. */
+    private Position safeCellAround(Position centre) {
+        List<Position> safe = new ArrayList<>(9);
+        for (int dy = -1; dy <= 1; dy++) {
+            for (int dx = -1; dx <= 1; dx++) {
+                if (board.isSafe(centre.x() + dx, centre.y() + dy)) {
+                    safe.add(new Position(centre.x() + dx, centre.y() + dy));
+                }
+            }
+        }
+        return safe.isEmpty() ? null : safe.get(random.nextInt(safe.size()));
+    }
+
+    private long drawLifespan() {
+        double spread = config.lifespanSpread();
+        double factor = 1 + spread * (2 * random.nextDouble() - 1);
+        return Math.max(1, Math.round(config.lifespanTicks() * factor));
     }
 
     private Observation observe(Npc npc) {
@@ -182,7 +265,20 @@ public final class World {
                 surroundings.add(board.get(npc.position.x() + dx, npc.position.y() + dy));
             }
         }
-        return new Observation(surroundings, npc.hunger, npc.thirst, npc.energy);
+        return new Observation(surroundings, npc.hunger, npc.thirst, npc.energy, npc.position);
+    }
+
+    /** Ids of the other NPCs standing in the 3x3 around the NPC, in slot order. */
+    private List<Integer> neighboursOf(Npc npc) {
+        List<Integer> neighbours = new ArrayList<>();
+        for (Npc other : npcs) {
+            if (other != npc
+                    && Math.abs(other.position.x() - npc.position.x()) <= 1
+                    && Math.abs(other.position.y() - npc.position.y()) <= 1) {
+                neighbours.add(other.id);
+            }
+        }
+        return neighbours;
     }
 
     /** Puts the NPC on a random safe cell with full energy and no needs. */

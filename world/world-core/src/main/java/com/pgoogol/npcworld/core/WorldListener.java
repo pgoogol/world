@@ -4,4 +4,10 @@ package com.pgoogol.npcworld.core;
 public interface WorldListener {
 
     void onLifeEnded(LifeEnded event);
+
+    default void onNpcRetired(NpcRetired event) {
+    }
+
+    default void onNpcBorn(NpcBorn event) {
+    }
 }

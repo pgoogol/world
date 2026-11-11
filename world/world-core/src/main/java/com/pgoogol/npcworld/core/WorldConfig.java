@@ -19,6 +19,9 @@ public record WorldConfig(
         int energyMax,
         int energyRegen,
         int lifeLimit,
+        long lifespanTicks,
+        double lifespanSpread,
+        long agingStartTick,
         RewardConfig rewards) {
 
     public WorldConfig {
@@ -31,5 +34,13 @@ public record WorldConfig(
         if (foodShare < 0 || waterShare < 0 || lavaShare < 0 || foodShare + waterShare + lavaShare >= 1) {
             throw new IllegalArgumentException("Cell shares must be non-negative and leave empty cells");
         }
+        if (lifespanTicks < 0 || lifespanSpread < 0 || lifespanSpread >= 1 || agingStartTick < 0) {
+            throw new IllegalArgumentException("Lifespan and ageing start must not be negative, spread must be in [0, 1)");
+        }
+    }
+
+    /** Stage 2: with a positive lifespan NPCs die of old age and newborns replace them. */
+    public boolean agingEnabled() {
+        return lifespanTicks > 0;
     }
 }

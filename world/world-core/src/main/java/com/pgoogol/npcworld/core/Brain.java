@@ -10,4 +10,8 @@ import java.util.Map;
 public interface Brain {
 
     Map<Integer, Action> decide(long tick, List<NpcView> views);
+
+    /** NPCs that died of old age: the brain should forget them. Called before the next {@code decide}. */
+    default void npcsRetired(List<Integer> npcIds) {
+    }
 }

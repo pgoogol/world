@@ -28,6 +28,25 @@ class ConfigLoaderTest {
     }
 
     @Test
+    void stageOneFileMeansNoAgeing() throws Exception {
+        AppConfig config = ConfigLoader.load(STAGE_1);
+
+        assertThat(config.world().agingEnabled()).isFalse();
+        assertThat(config.world().lifespanTicks()).isZero();
+    }
+
+    @Test
+    void readsTheStageTwoAdditions() throws Exception {
+        AppConfig config = ConfigLoader.load(Path.of("..", "..", "config", "stage-2.yaml"));
+
+        assertThat(config.world().npcs()).isEqualTo(12);
+        assertThat(config.world().agingEnabled()).isTrue();
+        assertThat(config.world().lifespanTicks()).isEqualTo(60_000);
+        assertThat(config.world().lifespanSpread()).isEqualTo(0.2);
+        assertThat(config.world().agingStartTick()).isEqualTo(150_000);
+    }
+
+    @Test
     void namesTheMissingSection() {
         assertThatThrownBy(() -> ConfigLoader.parse(Map.of("seed", 1)))
                 .isInstanceOf(IllegalArgumentException.class)

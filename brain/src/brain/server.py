@@ -14,6 +14,7 @@ import grpc
 
 from brain.brains import QLearningBrain, RandomBrain, npc_rng
 from brain.config import BRAIN_DIR, DEFAULT_CONFIG, BrainConfig, load_config
+from brain.discovery import DiscoveryMap
 from brain.group import BrainGroup
 from brain.proto import brain_pb2_grpc
 from brain.storage import load_brains
@@ -54,16 +55,19 @@ def build_group(config: BrainConfig, mode: str = "train", data_dir: Path | None 
     learning = mode == "train"
 
     def create(npc_id: int) -> QLearningBrain:
+        sharing = config.sharing
+        discovery = DiscoveryMap(sharing.map_food_retry_ticks) if sharing.map else None
         brain = QLearningBrain(
-            npc_rng(config.seed, npc_id), config.gamma, config.need_levels, build_tuning(config), learning=learning
+            npc_rng(config.seed, npc_id), config.gamma, config.need_levels, build_tuning(config),
+            learning=learning, discovery=discovery,
         )
         if npc_id in saved:
             brain.import_state(saved[npc_id])
         return brain
 
     if learning:
-        return BrainGroup(create, save_path=path, save_every_ticks=config.save_every_ticks)
-    return BrainGroup(create)
+        return BrainGroup(create, save_path=path, save_every_ticks=config.save_every_ticks, sharing=config.sharing)
+    return BrainGroup(create, sharing=config.sharing)
 
 
 def start_server(group: BrainGroup, address: str) -> tuple[grpc.Server, int]:

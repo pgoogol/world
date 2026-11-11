@@ -25,6 +25,18 @@ class SelfTuningConfig:
 
 
 @dataclass(frozen=True)
+class SharingConfig:
+    """Stage 2: how knowledge passes between neighbours. Everything is off by default (stage 1)."""
+
+    inherit: bool = False
+    inherit_trust: float = 0.25
+    observe: bool = False
+    observe_weight: float = 0.5
+    map: bool = False
+    map_food_retry_ticks: int = 50
+
+
+@dataclass(frozen=True)
 class BrainConfig:
     seed: int
     address: str
@@ -36,6 +48,7 @@ class BrainConfig:
     self_tuning: SelfTuningConfig
     save_every_ticks: int
     data_dir: str
+    sharing: SharingConfig = SharingConfig()
 
 
 def load_config(path: Path = DEFAULT_CONFIG) -> BrainConfig:
@@ -43,6 +56,7 @@ def load_config(path: Path = DEFAULT_CONFIG) -> BrainConfig:
         root = yaml.safe_load(file)
     brain = root["brain"]
     low, high = brain["need_levels"]
+    sharing = brain.get("sharing", {})
     return BrainConfig(
         seed=int(root["seed"]),
         address=brain["address"],
@@ -62,4 +76,12 @@ def load_config(path: Path = DEFAULT_CONFIG) -> BrainConfig:
         ),
         save_every_ticks=int(brain["save_every_ticks"]),
         data_dir=brain["data_dir"],
+        sharing=SharingConfig(
+            inherit=bool(sharing.get("inherit", False)),
+            inherit_trust=float(sharing.get("inherit_trust", 0.25)),
+            observe=bool(sharing.get("observe", False)),
+            observe_weight=float(sharing.get("observe_weight", 0.5)),
+            map=bool(sharing.get("map", False)),
+            map_food_retry_ticks=int(sharing.get("map_food_retry_ticks", 50)),
+        ),
     )

@@ -16,7 +16,8 @@ import java.util.Optional;
  *
  * <p>Arguments: {@code --config <path>} (default {@code config/stage-1.yaml}),
  * {@code --ticks <n>} (default {@code training.ticks}),
- * {@code --out <file.csv>} (default {@code <training.out_dir>/training.csv}).
+ * {@code --out <file.csv>} (default {@code <training.out_dir>/training.csv}),
+ * {@code --episodes <file.csv>} (optional: one row per life episode, birth and death of old age).
  */
 public final class TrainingMain {
 
@@ -29,10 +30,16 @@ public final class TrainingMain {
         long ticks = args.get("ticks").map(Long::parseLong).orElse(config.trainingTicks());
         Path out = Path.of(args.get("out").orElse(config.outDir() + "/training.csv"));
 
-        try (GrpcBrain brain = GrpcBrain.connect(config.brainAddress())) {
+        Path episodes = args.get("episodes").map(Path::of).orElse(null);
+
+        try (GrpcBrain brain = GrpcBrain.connect(config.brainAddress());
+                EpisodeLog episodeLog = episodes != null ? new EpisodeLog(episodes) : null) {
             World world = new World(config.world());
             LifeStats stats = new LifeStats(config.statsWindow());
             world.addListener(stats);
+            if (episodeLog != null) {
+                world.addListener(episodeLog);
+            }
             Simulation simulation = new Simulation(world, brain);
 
             long start = System.nanoTime();

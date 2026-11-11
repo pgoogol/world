@@ -24,8 +24,8 @@ class TrainingStatsTest {
     @Test
     void windowHoldsTheLivesThatEndedInIt() {
         LifeStats stats = new LifeStats(1000);
-        stats.onLifeEnded(new LifeEnded(0, 300, 100, LifeEnded.Cause.DEATH));
-        stats.onLifeEnded(new LifeEnded(1, 900, 205, LifeEnded.Cause.LIFE_LIMIT));
+        stats.onLifeEnded(new LifeEnded(0, 300, 100, LifeEnded.Cause.DEATH, 0, 300));
+        stats.onLifeEnded(new LifeEnded(1, 900, 205, LifeEnded.Cause.LIFE_LIMIT, 0, 900));
 
         assertThat(stats.closeWindowIfDue(999)).isEmpty();
         LifeStats.Row row = stats.closeWindowIfDue(1000).orElseThrow();
@@ -38,7 +38,7 @@ class TrainingStatsTest {
     @Test
     void nextWindowStartsEmptyAndTotalsKeepCounting() {
         LifeStats stats = new LifeStats(1000);
-        stats.onLifeEnded(new LifeEnded(0, 300, 100, LifeEnded.Cause.DEATH));
+        stats.onLifeEnded(new LifeEnded(0, 300, 100, LifeEnded.Cause.DEATH, 0, 300));
         stats.closeWindowIfDue(1000);
 
         LifeStats.Row empty = stats.closeWindowIfDue(2000).orElseThrow();

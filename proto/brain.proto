@@ -16,6 +16,7 @@ service Brain {
 message StepRequest {
   int64 tick = 1;
   repeated NpcView npcs = 2;
+  repeated int32 retired_npc_ids = 3;  // NPCs that died of old age since the previous request; their brains are gone
 }
 
 // What a single NPC perceives: raw values, the brain does its own encoding.
@@ -24,6 +25,8 @@ message Observation {
   int32 hunger = 2;                // 0-100
   int32 thirst = 3;                // 0-100
   int32 energy = 4;                // 0-100
+  int32 x = 5;                     // the NPC's own position on the board; x grows to the right
+  int32 y = 6;                     // y grows downwards
 }
 
 message NpcView {
@@ -33,6 +36,7 @@ message NpcView {
   bool died = 4;                      // the previous action ended in death
   bool truncated = 5;                 // life limit reached: episode ends without a penalty
   Observation final_observation = 6;  // set only when truncated: the state right before the reset, used to bootstrap the Q target
+  repeated int32 neighbour_ids = 7;   // NPCs standing in the 3x3 around this NPC; knowledge passes only between neighbours
 }
 
 message StepResponse {

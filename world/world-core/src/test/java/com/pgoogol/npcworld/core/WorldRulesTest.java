@@ -225,7 +225,7 @@ class WorldRulesTest {
         assertThat(view.observation().thirst()).isZero();
         assertThat(npc.position).isNotEqualTo(CENTRE);
         assertThat(npc.age).isZero();
-        assertThat(events).containsExactly(new LifeEnded(0, 1, 8, LifeEnded.Cause.DEATH));
+        assertThat(events).containsExactly(new LifeEnded(0, 1, 8, LifeEnded.Cause.DEATH, 0, 1));
     }
 
     @Test
@@ -260,7 +260,7 @@ class WorldRulesTest {
         assertThat(view.finalObservation().get().hunger()).isEqualTo(3);
         assertThat(view.observation().hunger()).isZero();
         assertThat(world.npc(0).age).isZero();
-        assertThat(events).containsExactly(new LifeEnded(0, 3, 3, LifeEnded.Cause.LIFE_LIMIT));
+        assertThat(events).containsExactly(new LifeEnded(0, 3, 3, LifeEnded.Cause.LIFE_LIMIT, 0, 3));
     }
 
     @Test

@@ -14,15 +14,16 @@ final class ProtoMapper {
     private ProtoMapper() {
     }
 
-    static StepRequest toRequest(long tick, List<NpcView> views) {
-        StepRequest.Builder request = StepRequest.newBuilder().setTick(tick);
+    static StepRequest toRequest(long tick, List<NpcView> views, List<Integer> retiredNpcIds) {
+        StepRequest.Builder request = StepRequest.newBuilder().setTick(tick).addAllRetiredNpcIds(retiredNpcIds);
         for (NpcView view : views) {
             var npc = com.pgoogol.npcworld.brain.proto.NpcView.newBuilder()
                     .setNpcId(view.npcId())
                     .setObservation(toProto(view.observation()))
                     .setReward(view.reward())
                     .setDied(view.died())
-                    .setTruncated(view.truncated());
+                    .setTruncated(view.truncated())
+                    .addAllNeighbourIds(view.neighbours());
             view.finalObservation().ifPresent(observation -> npc.setFinalObservation(toProto(observation)));
             request.addNpcs(npc);
         }
@@ -33,7 +34,9 @@ final class ProtoMapper {
         var builder = com.pgoogol.npcworld.brain.proto.Observation.newBuilder()
                 .setHunger(observation.hunger())
                 .setThirst(observation.thirst())
-                .setEnergy(observation.energy());
+                .setEnergy(observation.energy())
+                .setX(observation.position().x())
+                .setY(observation.position().y());
         observation.surroundings().forEach(cell -> builder.addSurroundings(toProto(cell)));
         return builder.build();
     }

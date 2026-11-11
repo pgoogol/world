@@ -13,6 +13,9 @@ final class TestConfigs {
     int foodRegrowTicks = 50;
     int energyRegen = 0;
     int lifeLimit = 2000;
+    long lifespanTicks = 0;
+    double lifespanSpread = 0;
+    long agingStartTick = 0;
 
     static TestConfigs stage1() {
         return new TestConfigs();
@@ -58,8 +61,20 @@ final class TestConfigs {
         return this;
     }
 
+    TestConfigs lifespan(long ticks, double spread) {
+        lifespanTicks = ticks;
+        lifespanSpread = spread;
+        return this;
+    }
+
+    TestConfigs agingStartTick(long value) {
+        agingStartTick = value;
+        return this;
+    }
+
     WorldConfig build() {
         return new WorldConfig(seed, width, height, npcs, foodShare, waterShare, lavaShare, foodRegrowTicks,
-                1, 100, 80, 1, 25, 40, 100, energyRegen, lifeLimit, new RewardConfig(0.1, 1.0, 50, -10.0));
+                1, 100, 80, 1, 25, 40, 100, energyRegen, lifeLimit, lifespanTicks, lifespanSpread, agingStartTick,
+                new RewardConfig(0.1, 1.0, 50, -10.0));
     }
 }

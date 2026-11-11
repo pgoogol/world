@@ -14,16 +14,17 @@ LAVA = brain_pb2.CELL_LAVA
 WALL = brain_pb2.CELL_WALL
 
 
-def observation(centre=EMPTY, hunger=0, thirst=0, energy=100) -> brain_pb2.Observation:
-    cells = [EMPTY] * 9
-    cells[4] = centre
-    return brain_pb2.Observation(surroundings=cells, hunger=hunger, thirst=thirst, energy=energy)
+def observation(centre=EMPTY, hunger=0, thirst=0, energy=100, x=5, y=5, cells=None) -> brain_pb2.Observation:
+    if cells is None:
+        cells = [EMPTY] * 9
+        cells[4] = centre
+    return brain_pb2.Observation(surroundings=cells, hunger=hunger, thirst=thirst, energy=energy, x=x, y=y)
 
 
-def view(obs=None, reward=0.0, died=False, truncated=False, final=None, npc_id=0) -> brain_pb2.NpcView:
+def view(obs=None, reward=0.0, died=False, truncated=False, final=None, npc_id=0, neighbours=()) -> brain_pb2.NpcView:
     result = brain_pb2.NpcView(
         npc_id=npc_id, observation=obs if obs is not None else observation(), reward=reward, died=died,
-        truncated=truncated,
+        truncated=truncated, neighbour_ids=list(neighbours),
     )
     if final is not None:
         result.final_observation.CopyFrom(final)

@@ -1,0 +1,64 @@
+# Stage 2 parameters, read by the world (Java) and the brains (Python).
+# Everything from stage 1 still applies; the stage 2 additions are marked.
+seed: 42
+
+world:
+  width: 20                 # board size including the surrounding wall
+  height: 20
+  npcs: 12                  # stage 2: a bigger settlement
+  food_share: 0.08          # share of the cells inside the wall
+  water_share: 0.05
+  lava_share: 0.05
+  food_regrow_ticks: 50
+  need_per_tick: 1          # hunger and thirst growth per tick
+  need_max: 100
+  need_threshold: 80        # from this level a need drains energy
+  need_energy_loss: 1       # per tick, per need at or above the threshold
+  lava_energy_loss: 25      # per tick spent on lava
+  consume_relief: 40        # hunger or thirst removed by eating or drinking
+  energy_max: 100
+  energy_regen: 0           # per tick when nothing drains energy; 0 = energy never comes back
+  life_limit: 2000          # ticks without a collapse; reaching it truncates the episode without a penalty
+  # Stage 2: ageing. An NPC that reaches its lifespan dies for good and a newborn takes its place.
+  lifespan_ticks: 60000     # 0 = nobody dies of old age (stage 1 behaviour)
+  lifespan_spread: 0.2      # each NPC's lifespan is drawn from lifespan_ticks +/- this share
+  aging_start_tick: 150000  # warm-up: nobody ages before this tick, so the founders can learn first
+
+rewards:
+  per_tick: 0.1
+  consume: 1.0
+  consume_need_min: 50      # eating or drinking pays only when the need is at least this high
+  death: -10.0
+
+brain:
+  address: localhost:50051
+  kind: qlearning           # qlearning | random
+  tuning: self              # self (NPC tunes its own epsilon and alpha) | fixed (control variant)
+  gamma: 0.95
+  need_levels: [50, 80]     # hunger/thirst below 50 = low, 50-79 = medium, 80+ = high
+  fixed:
+    alpha: 0.1
+    epsilon_start: 1.0
+    epsilon_end: 0.05
+    epsilon_decay_ticks: 200000
+  self_tuning:
+    epsilon_min: 0.05
+    alpha_min: 0.1
+  save_every_ticks: 5000
+  data_dir: data            # relative to brain/
+  # Stage 2: how knowledge passes between neighbours. The control settlement has all three off.
+  sharing:
+    inherit: true           # a newborn starts from the weighted average of its neighbours' tables
+    inherit_trust: 0.25     # inherited visit counters are multiplied by this
+    observe: true           # an NPC also learns from its neighbours' transitions
+    observe_weight: 0.5     # learning rate multiplier for a neighbour's transition
+    map: true               # NPCs remember where water and food are and swap maps on contact
+    map_food_retry_ticks: 50  # a food place seen empty counts as worth visiting again after this long
+
+training:
+  ticks: 400000             # warm-up plus about four lifespans
+  stats_window: 1000
+  out_dir: out              # relative to the repo root
+
+show:
+  ticks_per_second: 10
