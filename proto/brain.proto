@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package npcworld.brain.v1;
+
+option java_package = "com.pgoogol.npcworld.brain.proto";
+option java_multiple_files = true;
+
+// Contract between the world (Java, client) and the brains (Python, server).
+// New fields get new numbers; numbers of removed fields are never reused.
+
+service Brain {
+  // One call per tick, for the whole group of NPCs.
+  rpc Step(StepRequest) returns (StepResponse);
+}
+
+message StepRequest {
+  int64 tick = 1;
+  repeated NpcView npcs = 2;
+}
+
+// What a single NPC perceives: raw values, the brain does its own encoding.
+message Observation {
+  repeated Cell surroundings = 1;  // 3x3 around the NPC, row by row; the centre is the NPC's own cell
+  int32 hunger = 2;                // 0-100
+  int32 thirst = 3;                // 0-100
+  int32 energy = 4;                // 0-100
+}
+
+message NpcView {
+  int32 npc_id = 1;
+  Observation observation = 2;        // current state; after death or truncation it already shows the reset NPC
+  double reward = 3;                  // reward for the previous action, computed by the world
+  bool died = 4;                      // the previous action ended in death
+  bool truncated = 5;                 // life limit reached: episode ends without a penalty
+  Observation final_observation = 6;  // set only when truncated: the state right before the reset, used to bootstrap the Q target
+}
+
+message StepResponse {
+  repeated NpcAction actions = 1;
+}
+
+message NpcAction {
+  int32 npc_id = 1;
+  Action action = 2;
+}
+
+enum Action {
+  ACTION_UNSPECIFIED = 0;  // never sent on purpose; the world treats it as an error
+  ACTION_STAY = 1;
+  ACTION_UP = 2;
+  ACTION_DOWN = 3;
+  ACTION_LEFT = 4;
+  ACTION_RIGHT = 5;
+  ACTION_CONSUME = 6;  // eat or drink on the current cell
+}
+
+enum Cell {
+  CELL_UNSPECIFIED = 0;  // never sent on purpose; the brain treats it as an error
+  CELL_EMPTY = 1;
+  CELL_FOOD = 2;
+  CELL_WATER = 3;
+  CELL_LAVA = 4;
+  CELL_WALL = 5;
+}

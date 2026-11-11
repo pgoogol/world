@@ -1,0 +1,27 @@
+# Java / Maven
+target/
+
+# Python / uv
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Code generated from proto/brain.proto (see brain/scripts/gen_proto.py)
+brain/src/brain/proto/*_pb2.py
+brain/src/brain/proto/*_pb2.pyi
+brain/src/brain/proto/*_pb2_grpc.py
+
+# Runtime data: saved Q-tables and training statistics
+brain/data/
+out/
+*.csv
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Claude Code helper notes (task-observer skill), not part of the project
+skill-observations/
+skill-updates/

@@ -36,4 +36,26 @@ Przeczytaj je przed pierwszą zmianą w sesji:
 
 ## Komendy
 
-Do uzupełnienia w kroku 1.1: build i testy Javy, testy Pythona, start serwera mózgów, tryb treningu i tryb pokazu. Wpisz tylko polecenia, które sprawdziłeś.
+Sprawdzone w kroku 1.1 w PowerShellu. Java wymaga JDK 25 w `JAVA_HOME`; Mavena i Pythona 3.14 pobierają wrapper i uv.
+
+Build i testy Javy (generuje też klasy z proto), w katalogu `world/`:
+
+```
+.\mvnw.cmd verify
+```
+
+Testy jednego modułu, np. `world-core`, razem z modułami, od których zależy:
+
+```
+.\mvnw.cmd -pl world-core -am verify
+```
+
+Python, w katalogu `brain/`. Kod z proto generuj po każdej zmianie `proto/brain.proto` i po świeżym klonie:
+
+```
+uv sync
+uv run python scripts/gen_proto.py
+uv run pytest
+```
+
+Start serwera mózgów, tryb treningu i tryb pokazu dopisują kroki, które je tworzą (1.2, 1.6, 1.7).

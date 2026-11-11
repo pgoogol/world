@@ -25,12 +25,14 @@ Procesy łączy gRPC na `localhost:50051`. Mózgi są serwerem. Świat jest klie
 ```
 .
 ├── proto/brain.proto      kontrakt świat ↔ mózgi
-├── world/                 Java 25, Maven (parent POM)
+├── world/                 Java 25, Maven (parent POM, Maven Wrapper)
 │   ├── world-core/        plansza, postacie, zasady, tury, nagrody
 │   ├── world-brain/       klient gRPC
 │   └── world-view/        okno JavaFX
 ├── brain/                 Python 3.14, uv
-│   └── src/brain/         serwer gRPC i Q-learning
+│   ├── src/brain/         serwer gRPC i Q-learning
+│   ├── scripts/           generowanie kodu z proto
+│   └── tests/
 ├── config/                parametry etapów: seed, plansza, uczenie
 └── docs/
 ```
@@ -42,7 +44,7 @@ Procesy łączy gRPC na `localhost:50051`. Mózgi są serwerem. Świat jest klie
 | Świat | JDK 25 (LTS) | rekordy, sealed interfaces i `switch` z dopasowaniem wzorców do opisu akcji i zdarzeń; para z JavaFX 25 |
 | Widok | JavaFX 25: `Canvas`, `AnimationTimer`, `LineChart` | okno na pulpicie bez strony WWW, uruchamiane przez `javafx-maven-plugin` |
 | Build Javy | Maven, trzy moduły | `world-core` bez zależności od widoku i sieci |
-| Testy Javy | JUnit 5, AssertJ | test dla każdej zasady świata |
+| Testy Javy | JUnit 5 (5.14), AssertJ | test dla każdej zasady świata |
 | Mózgi | Python 3.14 | biblioteki mają gotowe paczki dla tej wersji |
 | Środowisko Pythona | uv, `pyproject.toml` | jedno narzędzie zamiast pip, venv i pyenv |
 | Uczenie | Q-learning w słowniku, NumPy | działa na CPU, bez karty graficznej |
@@ -56,65 +58,29 @@ Procesy łączy gRPC na `localhost:50051`. Mózgi są serwerem. Świat jest klie
 
 Oba tryby korzystają z tego samego `world-core`.
 
-## Kontrakt gRPC (szkic)
+## Kontrakt gRPC
 
-Ostateczną wersję ustala krok 1.1. Nowe pola dostają nowe numery, a numerów usuniętych pól nie używamy ponownie.
+Kontrakt żyje tylko w [proto/brain.proto](../proto/brain.proto). Krok 1.1 ustalił jego pierwszą wersję. Nowe pola dostają nowe numery, a numerów usuniętych pól nie używamy ponownie.
 
-```proto
-syntax = "proto3";
+- `Brain.Step(StepRequest) → StepResponse`: jedno wywołanie na turę za całą grupę.
+- `StepRequest`: numer tury i lista `NpcView`.
+- `NpcView`: `npc_id`, bieżąca `Observation`, nagroda za poprzedni ruch, flagi `died` i `truncated` oraz `final_observation`.
+- `Observation`: 9 pól wokół postaci wierszami (środek to pole pod nią), głód, pragnienie i energia w skali 0–100. Świat wysyła surowe wartości, koduje je mózg.
+- `StepResponse`: lista `NpcAction` (`npc_id`, `Action`).
 
-package npcworld.brain.v1;
+Dwie reguły, o których łatwo zapomnieć:
 
-option java_package = "com.pgoogol.npcworld.brain.proto";
-option java_multiple_files = true;
+- Po śmierci albo ucięciu epizodu `observation` pokazuje już postać po resecie. Przy `truncated` świat dosyła w `final_observation` stan sprzed resetu, bo z niego mózg liczy cel Q. Po śmierci tego pola nie ma: cel Q nie zawiera wtedy wartości następnego stanu.
+- Zero w enumach `Action` i `Cell` znaczy „nie ustawiono”. Świat traktuje `ACTION_UNSPECIFIED` jako błąd mózgu, a mózg tak samo `CELL_UNSPECIFIED`.
 
-service Brain {
-  // One call per tick, for the whole group of NPCs.
-  rpc Step(StepRequest) returns (StepResponse);
-}
+### Generowanie kodu
 
-message StepRequest {
-  int64 tick = 1;
-  repeated NpcView npcs = 2;
-}
+| Język | Jak | Gdzie ląduje |
+|---|---|---|
+| Java | `protobuf-maven-plugin` w `world-brain`, przy każdym buildzie | `world/world-brain/target/generated-sources/`, pakiet `com.pgoogol.npcworld.brain.proto` |
+| Python | `brain/scripts/gen_proto.py`, uruchamiany ręcznie po zmianie proto | `brain/src/brain/proto/`, import `from brain.proto import brain_pb2` |
 
-message NpcView {
-  int32 npc_id = 1;
-  repeated Cell surroundings = 2;  // 3x3 around the NPC, row by row; the centre is the NPC's own cell
-  int32 hunger = 3;                // 0-100
-  int32 thirst = 4;                // 0-100
-  int32 energy = 5;                // 0-100
-  double reward = 6;               // reward for the previous action, computed by the world
-  bool died = 7;                   // the previous action ended in death; the view already shows the respawned NPC
-  bool truncated = 8;              // life limit reached: episode ends without a penalty
-}
-
-message StepResponse {
-  repeated NpcAction actions = 1;
-}
-
-message NpcAction {
-  int32 npc_id = 1;
-  Action action = 2;
-}
-
-enum Action {
-  ACTION_STAY = 0;
-  ACTION_UP = 1;
-  ACTION_DOWN = 2;
-  ACTION_LEFT = 3;
-  ACTION_RIGHT = 4;
-  ACTION_CONSUME = 5;  // eat or drink on the current cell
-}
-
-enum Cell {
-  CELL_EMPTY = 0;
-  CELL_FOOD = 1;
-  CELL_WATER = 2;
-  CELL_LAVA = 3;
-  CELL_WALL = 4;
-}
-```
+Wygenerowanego kodu nie commitujemy w żadnym języku.
 
 ## Decyzje
 
@@ -131,6 +97,12 @@ enum Cell {
 11. **Reguły jako dane, nie przepisywany kod.** Osada zmienia reguły zapisane w JSON-ie. Świat testuje zmianę na kopii stanu i zostawia ją tylko przy lepszym wyniku. Program przepisujący własny kod łatwo psuje sam siebie albo uczy się oszukiwać metrykę.
 12. **Widok tylko czyta stan świata.** Dzięki temu JavaFX wymienisz na Unity bez przepisywania symulacji.
 13. **Etap 1 bez Spring Boota, bazy, Dockera i Kafki.** Etap 1 nie ma serwera WWW ani danych do trwałego przechowywania. Spring Boot, PostgreSQL i Flyway wchodzą w etapie 3.
+14. **Samostrojenie żyje w mózgu.** Postać liczy epsilon i alpha z własnych liczników odwiedzin, które mózg trzyma obok tablicy Q. Kontrakt się przez to nie zmienia, a świat nie wie, jak mózg się uczy.
+15. **Maven Wrapper zamiast globalnego Mavena.** `world/mvnw` pobiera przypiętą wersję Mavena, więc build wymaga tylko JDK 25 w `JAVA_HOME`.
+16. **Wtyczka `io.github.ascopes:protobuf-maven-plugin`.** Sama pobiera `protoc` i wtyczkę gRPC z Maven Central, więc nie instalujemy ich na komputerze. Starszej `org.xolstice` nikt już nie rozwija.
+17. **Protobuf w Javie przypięty do wersji `protoc`.** grpc-java ciągnie domyślnie protobuf-java 3.x, a kod generujemy przez `protoc` 4.x. `protobuf-bom` w parent POM wyrównuje obie wersje.
+18. **Kod Pythona z proto jako podpakiet `brain.proto`.** Skrypt mapuje `proto/` na wirtualną ścieżkę `brain/proto`, dzięki czemu wygenerowane moduły importują się nawzajem przez pakiet, bez poprawiania importów po generowaniu.
+19. **Obserwacja końcowa i zero „nie ustawiono” w kontrakcie.** Bez `final_observation` mózg nie policzy celu Q po ucięciu epizodu. Zero zarezerwowane w enumach odróżnia zgubiony ruch od świadomego „stój”.
 
 ## Co dochodzi później
 

@@ -11,14 +11,27 @@ Każdy etap kończy się czymś, co widać w oknie albo na wykresie. Etap 1 ma p
 | 5 | Relacje między osadami | 3–5 osad | Planowany |
 | 6 | Rywalizacja | wiele osad | Planowany |
 
+## Co się uczy i co samo rośnie
+
+Postacie nie dostają gotowych zachowań. W każdym etapie uczą się z własnych doświadczeń, a część algorytmu rozbudowuje się bez naszej ręki.
+
+| Etap | Co się uczy | Co samo rośnie |
+|---|---|---|
+| 1 | każda postać: które ruchy pozwalają przeżyć | tablica Q o nowe sytuacje; postać sama stroi epsilon i alpha z liczników odwiedzin |
+| 2 | osada: wiedza przechodzi na kolejne pokolenia | wspólna mapa odkryć; sieć zastępuje tablice, gdy te urosną za bardzo |
+| 3 | postacie: działania z opóźnioną nagrodą | zestaw akcji złożonych; świat zmieniany przez postacie |
+| 4 | osada: które reguły działają | zbiór reguł z historią wersji, poprawiany przez osadę |
+| 5 | osady: handel i zaufanie | zwyczaje i specjalizacja każdej osady |
+| 6 | osady: strategie przeciw rywalom | liga strategii z kolejnych wersji rywali |
+
 ## Etap 1: Mała osada
 
-Pięć postaci uczy się przetrwać, zaczynając od losowych ruchów.
+Pięć postaci uczy się przetrwać, zaczynając od losowych ruchów. Tempo uczenia każda dobiera sobie sama.
 
 - **Świat:** jedzenie (odrasta), woda, lawa i ściany. Głód i pragnienie rosną co turę. Gdy są wysokie albo postać stoi na lawie, spada jej energia. Przy zerowej energii postać umiera i odradza się z tą samą pamięcią. Nagrodę liczy świat.
-- **Mózgi:** osobna tablica Q dla każdej postaci. Postać widzi pola 3×3 wokół siebie oraz swój głód i pragnienie.
+- **Mózgi:** osobna tablica Q dla każdej postaci. Postać widzi pola 3×3 wokół siebie oraz swój głód i pragnienie. W nowych sytuacjach eksperymentuje, w znanych korzysta z wiedzy, a granicę między nimi wyznacza sama z liczby odwiedzin.
 - **Zobaczysz:** najpierw błądzenie i śmierć na lawie, po treningu marsz prosto do jedzenia i wody oraz rosnący wykres długości życia.
-- **Gotowe, gdy:** wytrenowane postacie żyją co najmniej 5 razy dłużej niż losowe, a ten sam seed daje identyczny przebieg.
+- **Gotowe, gdy:** wytrenowane postacie żyją co najmniej 5 razy dłużej niż losowe, samostrojenie nie uczy się wolniej niż stały harmonogram, a ten sam seed daje identyczny przebieg.
 
 Kroki i parametry: [docs/stage-1.md](docs/stage-1.md).
 
