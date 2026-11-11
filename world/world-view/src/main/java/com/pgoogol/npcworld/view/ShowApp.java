@@ -136,13 +136,22 @@ public final class ShowApp extends Application {
     }
 
     private static String describe(WorldSnapshot snapshot) {
+        boolean ageing = snapshot.npcs().stream().anyMatch(npc -> npc.lifespan() > 0);
         StringBuilder text = new StringBuilder("Tura " + snapshot.tick() + "\n\n");
-        text.append("Postać  Głód  Pragnienie  Energia  Wiek\n");
+        text.append("Postać  Głód  Pragn.  Energia  Bez upadku");
+        text.append(ageing ? "  Pokolenie  Wiek\n" : "\n");
         for (NpcSnapshot npc : snapshot.npcs()) {
-            text.append(String.format("%-6d  %4d  %10d  %7d  %4d%n",
+            text.append(String.format("%-6d  %4d  %6d  %7d  %10d",
                     npc.id(), npc.hunger(), npc.thirst(), npc.energy(), npc.age()));
+            if (ageing) {
+                text.append(String.format("  %9d  %3.0f%%", npc.generation(), 100 * BoardPainter.ageShare(npc)));
+            }
+            text.append('\n');
         }
         text.append("\nZielone: jedzenie, niebieskie: woda,\nczerwone: lawa, szare: ściana");
+        if (ageing) {
+            text.append("\nMałe kółko: noworodek, złota obwódka: starszy,\nżółta linia: sąsiedzi wymieniają wiedzę");
+        }
         return text.toString();
     }
 

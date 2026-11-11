@@ -53,23 +53,23 @@ Wartości do strojenia w `config/stage-2.yaml`. Parametry etapu 1, których tabe
 
 ## Kroki
 
-- [ ] **2.1 Specyfikacja i kontrakt.** Ten dokument, `config/stage-2.yaml`, nowe pola w `proto/brain.proto`, konfiguracja z wartościami domyślnymi dla plików etapu 1.
+- [x] **2.1 Specyfikacja i kontrakt.** Ten dokument, `config/stage-2.yaml`, nowe pola w `proto/brain.proto`, konfiguracja z wartościami domyślnymi dla plików etapu 1.
 
   *Gotowe, gdy:* build i testy przechodzą, a etap 1 na swoim pliku konfiguracji daje CSV identyczny z wynikiem sprzed etapu 2.
 
-- [ ] **2.2 Starzenie i narodziny.** Wiek, śmierć ze starości, noworodek z nowym numerem obok żyjącej postaci, pokolenia, rozruch, sąsiedzi i pozycja w widoku, zdarzenia narodzin i śmierci, dziennik epizodów per postać.
+- [x] **2.2 Starzenie i narodziny.** Wiek, śmierć ze starości, noworodek z nowym numerem obok żyjącej postaci, pokolenia, rozruch, sąsiedzi i pozycja w widoku, zdarzenia narodzin i śmierci, dziennik epizodów per postać.
 
   *Gotowe, gdy:* każda zasada ma test, a osada przechodzi 3 pokolenia powtarzalnie na tym samym seedzie.
 
-- [ ] **2.3 Dziedziczenie.** Cykl życia mózgu (narodziny, śmierć ze starości), średnia ważona licznikami, współczynnik zaufania.
+- [x] **2.3 Dziedziczenie.** Cykl życia mózgu (narodziny, śmierć ze starości), średnia ważona licznikami, współczynnik zaufania.
 
   *Gotowe, gdy:* testy sprawdzają średnią, wagi, pomniejszanie liczników i to, że noworodek dziedziczy tylko po sąsiadach.
 
-- [ ] **2.4 Podglądanie.** Nauka z przejść sąsiadów ze słabszą wagą.
+- [x] **2.4 Podglądanie.** Nauka z przejść sąsiadów ze słabszą wagą.
 
   *Gotowe, gdy:* testy pokazują zmianę tablicy obserwatora, a wyłączony przełącznik jej nie rusza.
 
-- [ ] **2.5 Mapa odkryć.** Osobista mapa, wymiana przy kontakcie, kierunki w stanie Q, mapa w zapisie na dysk.
+- [x] **2.5 Mapa odkryć.** Osobista mapa, wymiana przy kontakcie, kierunki w stanie Q, mapa w zapisie na dysk.
 
   *Gotowe, gdy:* testy pokrywają budowę mapy, scalanie i wyznaczanie kierunku.
 
