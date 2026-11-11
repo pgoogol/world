@@ -14,6 +14,10 @@
     <name>NPC World :: View</name>
     <description>JavaFX window. Reads the world state and never changes it.</description>
 
+    <properties>
+        <app.mainClass>com.pgoogol.npcworld.view.ShowMain</app.mainClass>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>com.pgoogol.npcworld</groupId>
@@ -29,4 +33,18 @@
         </dependency>
     </dependencies>
 
+    <build>
+        <finalName>world-view</finalName>
+        <plugins>
+            <!-- Runnable jar: target/world-view.jar with its dependencies in target/lib -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 </project>

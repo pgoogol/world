@@ -76,7 +76,7 @@ Wartości do strojenia, trzymane w konfiguracji.
 
   *Gotowe, gdy:* testy w `pytest` sprawdzają, że epsilon i alpha zależą od liczników i nie spadają poniżej dolnych granic, a przełącznik w konfiguracji wybiera samostrojenie albo stały harmonogram.
 
-- [ ] **1.6 Tryb treningu.** Pełna prędkość bez okna, statystyki do CSV (średnia długość życia w oknach po 1000 tur), przebiegi porównawcze z mózgiem losowym i ze stałym harmonogramem.
+- [x] **1.6 Tryb treningu.** Pełna prędkość bez okna, statystyki do CSV (średnia długość życia w oknach po 1000 tur), przebiegi porównawcze z mózgiem losowym i ze stałym harmonogramem.
 
   *Gotowe, gdy:* CSV pokazuje wzrost długości życia względem mózgu losowego.
 
