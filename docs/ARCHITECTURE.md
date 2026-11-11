@@ -127,6 +127,8 @@ Wygenerowanego kodu nie commitujemy w żadnym języku.
 38. **Miara „wytrenowanych postaci”.** `scripts/summarize.py` bierze średnią długość żyć zakończonych w ostatnich 50 oknach treningu i dzieli ją przez średnią mózgu losowego z całego przebiegu. Turę przekroczenia progu wyznacza średnia krocząca z 20 okien, bo jedno okno mieści tylko kilka żyć.
 39. **Symulacja w trybie pokazu na własnym wątku.** `SimulationRunner` w `world-app` odlicza tury w stałym tempie i po każdej publikuje niezmienną migawkę `WorldSnapshot`. `AnimationTimer` w oknie rysuje ostatnią migawkę i nie steruje zegarem. Gdy mózg zawiedzie, pętla staje, a okno pokazuje przyczynę.
 40. **Okno jako zwykły jar.** Klasa startowa `ShowMain` nie dziedziczy po `Application`, więc JavaFX działa z classpath i okno rusza przez `java -jar`. Opcja `--snapshot` zapisuje zrzut okna do PNG własnym, krótkim koderem, bez zależności `javafx-swing`.
+41. **Trening trwa 700 000 tur.** Przy 300 000 turach samostrojenie dochodziło do 2,9× mózgu losowego i krzywa wciąż rosła. Przy 700 000 daje 6,5×. Długość siedzi w `training.ticks`, jeden przebieg trwa około 5 minut.
+42. **Stały harmonogram przegrywa przez stałą alpha i ślepy epsilon.** Po 200 000 tur eksploruje już tylko 5% ruchów, także w sytuacjach, których prawie nie zna. Samostrojenie eksperymentuje dokładnie tam, gdzie ma mało doświadczeń.
 
 ## Co dochodzi później
 

@@ -48,9 +48,9 @@ final class BoardPainter {
         graphics.setTextBaseline(VPos.CENTER);
         for (NpcSnapshot npc : snapshot.npcs()) {
             // NPCs may share a cell: a small offset per id keeps all of them visible.
-            double shift = (npc.id() % 3 - 1) * 3.0;
-            double centreX = npc.position().x() * CELL + CELL / 2.0 + shift;
-            double centreY = npc.position().y() * CELL + CELL / 2.0 + shift;
+            double angle = 2 * Math.PI * (npc.id() % NPC_COLORS.length) / NPC_COLORS.length;
+            double centreX = npc.position().x() * CELL + CELL / 2.0 + 4 * Math.cos(angle);
+            double centreY = npc.position().y() * CELL + CELL / 2.0 + 4 * Math.sin(angle);
             double radius = CELL * 0.36;
 
             graphics.setFill(npcColor(npc.id()));

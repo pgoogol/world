@@ -52,6 +52,7 @@ Wartości do strojenia, trzymane w konfiguracji.
 | Stały harmonogram: alpha | 0.1 |
 | Stały harmonogram: epsilon | od 1.0 do 0.05, liniowo przez 200 000 tur |
 | Zapis tablic Q | co 5000 tur |
+| Długość treningu | 700 000 tur (przy 300 000 samostrojenie dochodziło tylko do 2,9× mózgu losowego) |
 | Seed | 42 |
 
 ## Kroki
@@ -80,11 +81,11 @@ Wartości do strojenia, trzymane w konfiguracji.
 
   *Gotowe, gdy:* CSV pokazuje wzrost długości życia względem mózgu losowego.
 
-- [ ] **1.7 Tryb pokazu.** Okno JavaFX: plansza na `Canvas`, ruch przez `AnimationTimer` (około 10 tur na sekundę), obok `LineChart` ze średnią długością życia. Mózgi wczytują wytrenowane tablice i działają z minimalnym epsilonem.
+- [x] **1.7 Tryb pokazu.** Okno JavaFX: plansza na `Canvas`, ruch przez `AnimationTimer` (około 10 tur na sekundę), obok `LineChart` ze średnią długością życia. Mózgi wczytują wytrenowane tablice i działają z minimalnym epsilonem.
 
   *Gotowe, gdy:* w oknie widać, że postacie omijają lawę i chodzą do jedzenia i wody.
 
-- [ ] **1.8 Odbiór etapu.** Sprawdź kryteria ukończenia i wpisz wyniki (średnia długość życia: mózg losowy, stały harmonogram i samostrojenie) do `ROADMAP.md`.
+- [x] **1.8 Odbiór etapu.** Sprawdź kryteria ukończenia i wpisz wyniki (średnia długość życia: mózg losowy, stały harmonogram i samostrojenie) do `ROADMAP.md`.
 
 ## Kryteria ukończenia etapu
 
@@ -92,6 +93,27 @@ Wartości do strojenia, trzymane w konfiguracji.
 - Postacie z samostrojeniem dochodzą do tego progu w nie większej liczbie tur niż wariant ze stałym harmonogramem na tym samym seedzie.
 - Dwa przebiegi treningu z tym samym seedem dają identyczny plik CSV.
 - W trybie pokazu postacie omijają lawę i chodzą do jedzenia i wody.
+
+## Wyniki odbioru
+
+Seed 42, trening 700 000 tur, pomiar wytrenowanych tablic bez uczenia przez 50 000 tur.
+
+| Wariant | Średnia długość życia pod koniec treningu | W pomiarze bez uczenia | Względem losowego |
+|---|---|---|---|
+| Mózg losowy | 87,5 tury | – | 1× |
+| Stały harmonogram | 235 tur | 239 tur | 2,7× |
+| Samostrojenie | 571 tur | 567 tur | 6,5× |
+
+- **5 razy dłużej niż losowe:** spełnione dla samostrojenia (6,5×). Stały harmonogram, czyli wariant kontrolny, zatrzymuje się na 2,7×.
+- **Samostrojenie nie wolniejsze od stałego harmonogramu:** spełnione. Samostrojenie przekracza próg w turze 519 000, stały harmonogram nie dochodzi do niego wcale.
+- **Identyczny CSV z tego samego seeda:** spełnione. Dwa przebiegi samostrojenia dały pliki równe co do bajta, przy 300 000 i przy 700 000 tur.
+- **Postacie omijają lawę i chodzą do jedzenia i wody:** wytrenowane stoją na lawie przez 0,05% tur (losowe 2,71%), a 41% ich prób jedzenia i picia trafia w zasób (losowe 10%). Zrzut okna: [img/stage-1-show.png](img/stage-1-show.png).
+
+Co sprawdziliśmy po drodze:
+
+- Przy 300 000 tur samostrojenie dawało 2,9×, a stały harmonogram 2,1×. Brakowało czasu nauki: krzywa samostrojenia rosła do końca przebiegu i rośnie dalej po 700 000 tur.
+- Regeneracja energii (`energy_regen: 1`) nie pomogła: 273 tury wobec 280 bez niej. Postacie nie giną od starych ran, tylko z pragnienia i głodu, gdy nie znajdą zasobu.
+- Pole widzenia 3×3 wystarcza na próg, ale postać nie widzi zasobu z daleka. Marsz przez pół planszy prosto do wody wymaga szerszego pola widzenia albo pamięci miejsc, czyli materiału na etap 2.
 
 ## Do decyzji
 

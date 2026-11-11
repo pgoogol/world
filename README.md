@@ -8,7 +8,7 @@ Symulacja świata NPC. Grupa postaci startuje bez żadnej wiedzy i uczy się met
 | Mózgi postaci | Python 3.14, uv |
 | Połączenie | gRPC, Protocol Buffers |
 
-**Status:** etap 1 (mała osada), przed implementacją.
+**Status:** etap 1 (mała osada) ukończony. Wytrenowane postacie żyją 6,5 razy dłużej niż losowe. Następny jest etap 2 (wspólna wiedza).
 
 ## Dokumenty
 

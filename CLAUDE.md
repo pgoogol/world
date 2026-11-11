@@ -12,7 +12,7 @@ Przeczytaj je przed pierwszą zmianą w sesji:
 
 ## Jak pracujemy
 
-- Bieżący krok to pierwszy nieodhaczony krok w `docs/stage-1.md`. Rób jeden krok naraz i kończ go dopiero, gdy spełnia warunek „Gotowe, gdy”.
+- Bieżący krok to pierwszy nieodhaczony krok w specyfikacji bieżącego etapu (etap 1: `docs/stage-1.md`, ukończony). Rób jeden krok naraz i kończ go dopiero, gdy spełnia warunek „Gotowe, gdy”.
 - Nie dokładaj niczego z późniejszych etapów (PyTorch, baza danych, Spring Boot, model językowy, Unity), dopóki `ROADMAP.md` ich nie odblokuje.
 - Gdy specyfikacja czegoś nie rozstrzyga, zajrzyj do sekcji „Do decyzji” w specyfikacji etapu. Przyjmij wartość domyślną i opisz wybór w podsumowaniu kroku.
 - Po każdym kroku uruchom testy obu części i odhacz krok. Nową decyzję albo zmianę kontraktu dopisz do `docs/ARCHITECTURE.md`.

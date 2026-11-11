@@ -4,8 +4,8 @@ Każdy etap kończy się czymś, co widać w oknie albo na wykresie. Etap 1 ma p
 
 | Etap | Nazwa | Skala | Status |
 |---|---|---|---|
-| 1 | Mała osada | 5 postaci, plansza 20×20 | Bieżący |
-| 2 | Wspólna wiedza | 10–20 postaci, kolejne pokolenia | Planowany |
+| 1 | Mała osada | 5 postaci, plansza 20×20 | Ukończony |
+| 2 | Wspólna wiedza | 10–20 postaci, kolejne pokolenia | Następny |
 | 3 | Tworzenie świata | 20–50 postaci, plansza 64×64, pory roku | Planowany |
 | 4 | Przepisywanie reguł | jak w etapie 3 | Planowany |
 | 5 | Relacje między osadami | 3–5 osad | Planowany |
@@ -30,10 +30,24 @@ Pięć postaci uczy się przetrwać, zaczynając od losowych ruchów. Tempo ucze
 
 - **Świat:** jedzenie (odrasta), woda, lawa i ściany. Głód i pragnienie rosną co turę. Gdy są wysokie albo postać stoi na lawie, spada jej energia. Przy zerowej energii postać umiera i odradza się z tą samą pamięcią. Nagrodę liczy świat.
 - **Mózgi:** osobna tablica Q dla każdej postaci. Postać widzi pola 3×3 wokół siebie oraz swój głód i pragnienie. W nowych sytuacjach eksperymentuje, w znanych korzysta z wiedzy, a granicę między nimi wyznacza sama z liczby odwiedzin.
-- **Zobaczysz:** najpierw błądzenie i śmierć na lawie, po treningu marsz prosto do jedzenia i wody oraz rosnący wykres długości życia.
+- **Zobaczysz:** najpierw błądzenie i śmierć na lawie, po treningu omijanie lawy, jedzenie i picie przy napotkanych zasobach oraz rosnący wykres długości życia.
 - **Gotowe, gdy:** wytrenowane postacie żyją co najmniej 5 razy dłużej niż losowe, samostrojenie nie uczy się wolniej niż stały harmonogram, a ten sam seed daje identyczny przebieg.
 
 Kroki i parametry: [docs/stage-1.md](docs/stage-1.md).
+
+**Wyniki (seed 42, 700 000 tur treningu):**
+
+| Wariant | Średnia długość życia | Względem losowego |
+|---|---|---|
+| Mózg losowy | 87,5 tury | 1× |
+| Stały harmonogram (kontrolny) | 235 tur | 2,7× |
+| Samostrojenie | 571 tur | 6,5× |
+
+Samostrojenie przekracza próg 5× w turze 519 000, stały harmonogram nie dochodzi do niego wcale. Dwa przebiegi z tym samym seedem dają identyczny CSV. Wytrenowane postacie stoją na lawie przez 0,05% tur wobec 2,71% u losowych.
+
+Postać widzi tylko sąsiednie pola, więc zasobu szuka wędrówką, a nie marszem z daleka. Szersze pole widzenia albo pamięć miejsc to pierwszy kandydat do etapu 2.
+
+![Okno trybu pokazu po treningu](docs/img/stage-1-show.png)
 
 ## Etap 2: Wspólna wiedza
 

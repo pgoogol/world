@@ -43,7 +43,7 @@ brain:
   data_dir: data            # relative to brain/
 
 training:
-  ticks: 300000
+  ticks: 700000
   stats_window: 1000
   out_dir: out              # relative to the repo root
 
