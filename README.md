@@ -5,7 +5,7 @@ Symulacja świata NPC. Grupa postaci startuje bez żadnej wiedzy i uczy się met
 | Część | Technologie |
 |---|---|
 | Świat i widok | Java 25, JavaFX 25, Maven |
-| Mózgi postaci | Python 3.14, uv, NumPy |
+| Mózgi postaci | Python 3.14, uv |
 | Połączenie | gRPC, Protocol Buffers |
 
 **Status:** etap 1 (mała osada), przed implementacją.

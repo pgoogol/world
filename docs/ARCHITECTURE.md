@@ -50,7 +50,7 @@ Procesy łączy gRPC na `localhost:50051`. Mózgi są serwerem. Świat jest klie
 | Testy Javy | JUnit 5 (5.14), AssertJ | test dla każdej zasady świata |
 | Mózgi | Python 3.14 | biblioteki mają gotowe paczki dla tej wersji |
 | Środowisko Pythona | uv, `pyproject.toml` | jedno narzędzie zamiast pip, venv i pyenv |
-| Uczenie | Q-learning w słowniku, NumPy | działa na CPU, bez karty graficznej |
+| Uczenie | Q-learning w słowniku, czysty Python | działa na CPU, bez karty graficznej |
 | Testy Pythona | pytest | |
 | Komunikacja | gRPC i Protocol Buffers: grpc-java, `grpcio`, `grpcio-tools` | klasy dla Javy, Pythona i później C# z jednego pliku |
 
@@ -117,6 +117,10 @@ Wygenerowanego kodu nie commitujemy w żadnym języku.
 28. **Plansza z seeda, spójna bez lawy.** Generator losuje układ do skutku, aż wszystkie pola poza lawą i ścianą tworzą jedną całość. Odrodzenie losuje pole z tej całości.
 29. **Regeneracja energii jako parametr, domyślnie wyłączona.** `energy_regen: 0` zachowuje zasadę ze specyfikacji: energia tylko spada. Wartość dodatnia przywraca energię w turach bez strat.
 30. **Świat zgłasza koniec życia zdarzeniem.** `WorldListener` dostaje `LifeEnded` z długością życia i przyczyną. Statystyki i widok słuchają, a nie zaglądają do stanu postaci.
+31. **Tablica Q bez NumPy.** Klucz to 11 bajtów (9 pól, poziom głodu, poziom pragnienia), wartość to lista sześciu ocen. Przy sześciu liczbach zwykła lista jest szybsza od tablicy NumPy, więc NumPy wejdzie dopiero z kodem, który go potrzebuje.
+32. **Poziomy potrzeb z tych samych progów co zasady świata.** Granice 50 i 80 w `brain.need_levels` pokrywają się z progiem nagrody za jedzenie i progiem utraty energii, więc postać rozróżnia dokładnie te stany, które świat traktuje inaczej. Energia nie wchodzi do klucza.
+33. **Remisy w ocenach rozstrzyga losowanie z ziarna postaci.** Świeża tablica ma same zera i bez losowania postać zawsze wybierałaby „stój”.
+34. **Tablice w jednym pliku pickle na wariant uczenia.** `brain/data/qtables-<wariant>.pkl`, zapis przez plik tymczasowy i podmianę. Serwer wczytuje plik przy starcie, chyba że dostanie `--fresh`. Tryb `--mode show` niczego nie zapisuje i nie uczy.
 
 ## Co dochodzi później
 

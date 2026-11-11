@@ -7,6 +7,7 @@ Every brain has the same interface:
 
 import random
 
+from brain.encoding import encode
 from brain.proto import brain_pb2
 
 # Action index -> contract enum. Index order is the order of the Q values.
@@ -37,3 +38,70 @@ class RandomBrain:
 
     def start_run(self) -> None:
         pass
+
+
+class QLearningBrain:
+    """Tabular Q-learning with epsilon-greedy action choice.
+
+    The table is a dict: encoded observation -> six action values. It grows only by
+    situations the NPC has actually been in.
+    """
+
+    def __init__(self, rng: random.Random, gamma: float, need_levels: tuple[int, int], tuning, learning: bool = True):
+        self._rng = rng
+        self._gamma = gamma
+        self._need_levels = need_levels
+        self._tuning = tuning
+        self._learning = learning  # False in show mode: no updates, minimal epsilon
+        self._previous: tuple[bytes, int] | None = None
+        self.q: dict[bytes, list[float]] = {}
+        self.steps = 0
+
+    def start_run(self) -> None:
+        self._previous = None
+
+    def act(self, view) -> int:
+        state = encode(view.observation, self._need_levels)
+        if self._learning and self._previous is not None:
+            self._learn(view, state)
+
+        values = self.q.setdefault(state, [0.0] * ACTION_COUNT)
+        epsilon = self._tuning.epsilon(self.steps) if self._learning else self._tuning.epsilon_floor
+        if self._rng.random() < epsilon:
+            action = self._rng.randrange(ACTION_COUNT)
+        else:
+            best = max(values)
+            # Ties are broken at random: with a fresh table every value is equal.
+            action = self._rng.choice([index for index, value in enumerate(values) if value == best])
+
+        self._previous = (state, action)
+        self.steps += 1
+        return action
+
+    def _learn(self, view, state: bytes) -> None:
+        previous_state, previous_action = self._previous
+        if view.died:
+            # Death is terminal: nothing follows it.
+            target = view.reward
+        elif view.truncated:
+            # The life limit only cuts the episode: bootstrap from the state before the reset.
+            if not view.HasField("final_observation"):
+                raise ValueError(f"NPC {view.npc_id}: truncated view without final_observation")
+            final_state = encode(view.final_observation, self._need_levels)
+            target = view.reward + self._gamma * self._best_value(final_state)
+        else:
+            target = view.reward + self._gamma * self._best_value(state)
+
+        values = self.q[previous_state]
+        values[previous_action] += self._tuning.alpha() * (target - values[previous_action])
+
+    def _best_value(self, state: bytes) -> float:
+        values = self.q.get(state)
+        return max(values) if values is not None else 0.0
+
+    def export_state(self) -> dict:
+        return {"q": self.q, "steps": self.steps}
+
+    def import_state(self, state: dict) -> None:
+        self.q = state["q"]
+        self.steps = state["steps"]

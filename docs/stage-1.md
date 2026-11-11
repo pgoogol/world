@@ -68,7 +68,7 @@ Wartości do strojenia, trzymane w konfiguracji.
 
   *Gotowe, gdy:* każda zasada ma test jednostkowy, a dwa przebiegi z tym samym seedem dają ten sam stan po 1000 turach.
 
-- [ ] **1.4 Mózgi.** Q-learning dla każdej postaci, kodowanie obserwacji, zanik epsilon, zapis i odczyt tablic, mózg losowy.
+- [x] **1.4 Mózgi.** Q-learning dla każdej postaci, kodowanie obserwacji, zanik epsilon, zapis i odczyt tablic, mózg losowy.
 
   *Gotowe, gdy:* testy w `pytest` sprawdzają aktualizację Q (także po śmierci i po ucięciu epizodu), kodowanie obserwacji oraz zapis i odczyt tablic.
 
