@@ -38,6 +38,7 @@ def main() -> int:
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--out", type=Path, help="default: out/<variant>.csv in the repo root")
     parser.add_argument("--resume", action="store_true", help="continue from saved tables instead of empty ones")
+    parser.add_argument("--data-dir", type=Path, help="where the tables live (default: brain.data_dir)")
     parser.add_argument("--evaluate", action="store_true",
                         help="measure the saved tables: no learning, minimal epsilon, nothing saved; "
                              "statistics go to out/<variant>-eval.csv")
@@ -52,10 +53,11 @@ def main() -> int:
     suffix = "-eval" if args.evaluate else ""
     out = (args.out or REPO_ROOT / "out" / f"{args.variant}{suffix}.csv").resolve()
     config_path = args.config.resolve()
+    data_dir = args.data_dir.resolve() if args.data_dir else None
     if args.evaluate:
-        group = build_group(config, mode="show")
+        group = build_group(config, mode="show", data_dir=data_dir)
     else:
-        group = build_group(config, mode="train", fresh=not args.resume)
+        group = build_group(config, mode="train", data_dir=data_dir, fresh=not args.resume)
     server, _ = start_server(group, config.address)
     try:
         command = [java_command(), "-jar", str(WORLD_JAR), "--config", str(config_path), "--out", str(out)]

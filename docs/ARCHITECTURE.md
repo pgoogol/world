@@ -122,6 +122,11 @@ Wygenerowanego kodu nie commitujemy w żadnym języku.
 33. **Remisy w ocenach rozstrzyga losowanie z ziarna postaci.** Świeża tablica ma same zera i bez losowania postać zawsze wybierałaby „stój”.
 34. **Tablice w jednym pliku pickle na wariant uczenia.** `brain/data/qtables-<wariant>.pkl`, zapis przez plik tymczasowy i podmianę. Serwer wczytuje plik przy starcie, chyba że dostanie `--fresh`. Tryb `--mode show` niczego nie zapisuje i nie uczy.
 35. **Liczniki samostrojenia.** Epsilon bierze liczbę wcześniejszych odwiedzin sytuacji, więc pierwsza wizyta daje 1. Alpha bierze liczbę prób pary sytuacja–akcja razem z bieżącą, więc pierwsza aktualizacja przyjmuje cały cel. Liczniki zapisują się razem z tablicą Q. W trybie pokazu mózg ich nie rusza.
+36. **Statystyki życia w oknach po 1000 tur.** Życie liczy się w oknie, w którym się skończyło, śmiercią albo limitem. CSV ma kolumny `tick,lives_ended,mean_life_length`, kropkę dziesiętną i puste pole średniej w oknie bez zakończonych żyć.
+37. **Trening jednym skryptem.** `brain/scripts/train.py` startuje serwer mózgów w swoim procesie, uruchamia świat jako podproces i po udanym przebiegu zapisuje tablice. Przebieg zaczyna od pustych tablic, więc ten sam seed daje ten sam CSV. `--evaluate` mierzy zapisane tablice bez uczenia i bez zapisu.
+38. **Miara „wytrenowanych postaci”.** `scripts/summarize.py` bierze średnią długość żyć zakończonych w ostatnich 50 oknach treningu i dzieli ją przez średnią mózgu losowego z całego przebiegu. Turę przekroczenia progu wyznacza średnia krocząca z 20 okien, bo jedno okno mieści tylko kilka żyć.
+39. **Symulacja w trybie pokazu na własnym wątku.** `SimulationRunner` w `world-app` odlicza tury w stałym tempie i po każdej publikuje niezmienną migawkę `WorldSnapshot`. `AnimationTimer` w oknie rysuje ostatnią migawkę i nie steruje zegarem. Gdy mózg zawiedzie, pętla staje, a okno pokazuje przyczynę.
+40. **Okno jako zwykły jar.** Klasa startowa `ShowMain` nie dziedziczy po `Application`, więc JavaFX działa z classpath i okno rusza przez `java -jar`. Opcja `--snapshot` zapisuje zrzut okna do PNG własnym, krótkim koderem, bez zależności `javafx-swing`.
 
 ## Co dochodzi później
 

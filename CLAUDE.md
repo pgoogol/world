@@ -70,4 +70,27 @@ uv run python -m brain.server
 & "$env:JAVA_HOME\bin\java" -jar world\world-app\target\world-app.jar --ticks 1000
 ```
 
-Tryb treningu i tryb pokazu dopisują kroki, które je tworzą (1.6, 1.7).
+Tryb treningu, w katalogu `brain/`. Skrypt sam startuje serwer mózgów, puszcza świat bez okna i zapisuje tablice. Statystyki lądują w `out/<wariant>.csv`, tablice w `brain/data/`. Każdy przebieg zaczyna od pustych tablic, chyba że dostanie `--resume`:
+
+```
+uv run python scripts/train.py --variant self
+uv run python scripts/train.py --variant fixed
+uv run python scripts/train.py --variant random
+```
+
+Pomiar wytrenowanych tablic bez uczenia (`out/<wariant>-eval.csv`) i porównanie wariantów:
+
+```
+uv run python scripts/train.py --variant self --evaluate --ticks 50000
+uv run python scripts/summarize.py
+```
+
+Tryb pokazu: najpierw serwer z wytrenowanymi tablicami w katalogu `brain/`, potem okno w katalogu głównym repo. `--tps 50` przyspiesza pokaz, `--snapshot out\show.png` zapisuje zrzut okna:
+
+```
+uv run python -m brain.server --mode show
+```
+
+```
+& "$env:JAVA_HOME\bin\java" -jar world\world-view\target\world-view.jar
+```
