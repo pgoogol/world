@@ -105,3 +105,28 @@ def test_show_mode_never_writes_tables(tmp_path):
 
 def test_npc_streams_differ():
     assert npc_rng(42, 0).random() != npc_rng(42, 1).random()
+
+
+def test_founders_of_a_new_run_take_over_the_states_saved_under_other_ids(tmp_path):
+    config = qlearning_config()
+    survivors = {40: trained_brain(1), 57: trained_brain(2)}
+    save_brains(tables_path(config, tmp_path), survivors)
+
+    group = build_group(config, mode="show", data_dir=tmp_path)
+    group.step(brain_pb2.StepRequest(tick=0, npcs=[view(npc_id=0), view(npc_id=1), view(npc_id=2)]))
+
+    assert group.brains[0].q == survivors[40].q
+    assert group.brains[1].q == survivors[57].q
+    assert group.brains[2].q.keys() == {next(iter(group.brains[2].q))}   # nothing left to take over
+
+
+def test_saved_state_under_the_same_id_wins_over_taking_over(tmp_path):
+    config = qlearning_config()
+    survivors = {0: trained_brain(1), 1: trained_brain(2)}
+    save_brains(tables_path(config, tmp_path), survivors)
+
+    group = build_group(config, mode="show", data_dir=tmp_path)
+    group.step(brain_pb2.StepRequest(tick=0, npcs=[view(npc_id=1), view(npc_id=0)]))
+
+    assert group.brains[1].q == survivors[1].q
+    assert group.brains[0].q == survivors[0].q

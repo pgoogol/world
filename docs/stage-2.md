@@ -48,6 +48,7 @@ Wartości do strojenia w `config/stage-2.yaml`. Parametry etapu 1, których tabe
 | Dziedziczenie: zaufanie do liczników | 0,25 |
 | Podglądanie: waga | 0,5 |
 | Mapa: ponowna próba pustego miejsca z jedzeniem | po 50 turach |
+| Mapa: cel | najbliższe znane miejsce zasobu, którego postać potrzebuje bardziej |
 | Długość przebiegu | 400 000 tur (rozruch i 4 długości życia) |
 | Seed | 42 |
 
@@ -73,19 +74,19 @@ Wartości do strojenia w `config/stage-2.yaml`. Parametry etapu 1, których tabe
 
   *Gotowe, gdy:* testy pokrywają budowę mapy, scalanie, wybór celu i krok w jego stronę.
 
-- [ ] **2.6 Pomiar.** Przebieg pokoleń dla osady z wymianą wiedzy, osady kontrolnej i każdego mechanizmu osobno. Skrypt liczy poziom pokoleń i wiek, w którym noworodki dochodzą do poziomu dorosłych.
+- [x] **2.6 Pomiar.** Przebieg pokoleń dla osady z wymianą wiedzy, osady kontrolnej i każdego mechanizmu osobno. Skrypt liczy poziom pokoleń i wiek, w którym noworodki dochodzą do poziomu dorosłych.
 
   *Gotowe, gdy:* przebiegi dają powtarzalny wynik, a skrypt wypisuje tabelę wariantów.
 
-- [ ] **2.7 Sieć zamiast tablic (warunkowo).** Mała sieć w PyTorchu zastępuje tablice tylko wtedy, gdy tablica jednej postaci przekroczy 200 000 sytuacji albo postacie z mapą uczą się wolniej niż bez niej.
+- [x] **2.7 Sieć zamiast tablic (warunkowo).** Mała sieć w PyTorchu zastępuje tablice tylko wtedy, gdy tablica jednej postaci przekroczy 200 000 sytuacji albo postacie z mapą uczą się wolniej niż bez niej.
 
   *Gotowe, gdy:* pomiar z kroku 2.6 rozstrzyga, czy warunek zaszedł, a decyzja jest zapisana w `ARCHITECTURE.md`.
 
-- [ ] **2.8 Widok.** Wiek i pokolenie postaci w oknie, zaznaczony kontakt sąsiadów.
+- [x] **2.8 Widok.** Wiek i pokolenie postaci w oknie, zaznaczony kontakt sąsiadów.
 
   *Gotowe, gdy:* w oknie widać, kto jest noworodkiem, a kto starszym, i kiedy postacie stoją obok siebie.
 
-- [ ] **2.9 Odbiór etapu.** Sprawdź kryteria i wpisz wyniki do `ROADMAP.md`.
+- [x] **2.9 Odbiór etapu.** Sprawdź kryteria i wpisz wyniki do `ROADMAP.md`.
 
 ## Kryteria ukończenia etapu
 
@@ -95,6 +96,34 @@ Wartości do strojenia w `config/stage-2.yaml`. Parametry etapu 1, których tabe
 - Dwa przebiegi z tym samym seedem dają identyczne pliki statystyk.
 - Etap 1 na `config/stage-1.yaml` daje wyniki identyczne z odbiorem etapu 1.
 
+## Wyniki odbioru
+
+Seed 42, 12 postaci, 400 000 tur na przebieg. Mózg losowy żyje w tym świecie średnio 86,8 tury między upadkami, więc poziom dorosłych to 434 tury. Tabela podaje średnią długość życia dorosłych (epizody zakończone w drugiej połowie życia postaci) w kolejnych pokoleniach.
+
+| Osada | Założyciele | Pok. 1 | Pok. 2 | Pok. 3 | Pok. 4 | Noworodki dochodzące do poziomu |
+|---|---|---|---|---|---|---|
+| Kontrolna (bez wymiany) | 151 | 142 | 141 | 140 | 140 | żaden |
+| Samo podglądanie | 158 | 142 | 144 | 146 | 140 | żaden |
+| Sama mapa | 218 | 178 | 175 | 175 | 171 | żaden po założycielach |
+| Samo dziedziczenie | 150 | 193 | 228 | 287 | 257 | część, od pokolenia 2 |
+| Wszystkie trzy mechanizmy | 210 | 388 | 435 | 518 | 459 | wszystkie od pokolenia 2 |
+
+- **Noworodki 2 razy szybciej niż w osadzie kontrolnej:** spełnione. W osadzie z wymianą wiedzy połowa noworodków dochodzi do poziomu dorosłych po 18 500 turach życia w pokoleniu 1, po 12 800 w pokoleniu 2, po 8800 w pokoleniu 3 i po 4900 w pokoleniu 4. W osadzie kontrolnej żaden noworodek nie dochodzi do niego przez całe życie (około 60 000 tur).
+- **Poziom dorosłych przez 3 pokolenia:** spełnione. W przebiegu wydłużonym do 600 000 tur pokolenia 2–8 mają 435, 518, 511, 508, 530, 446 i 435 tur. Osada kontrolna stoi na 140.
+- **Powtarzalność:** spełnione. Dwa przebiegi osady z wymianą wiedzy dały identyczne pliki statystyk i dzienniki epizodów.
+- **Zgodność z etapem 1:** spełnione. Trening etapu 1 na `config/stage-1.yaml` daje CSV równy co do bajta z odbiorem etapu 1.
+- **Sieć zamiast tablic:** warunek nie zaszedł. Tablica jednej postaci ma około 2700 sytuacji (próg 200 000), a postacie z mapą uczą się szybciej niż bez niej. PyTorch zostaje na etap 3.
+
+Co sprawdziliśmy po drodze:
+
+- **Mechanizmy działają razem, nie osobno.** Dziedziczenie przenosi wiedzę przez pokolenia, ale samo dochodzi do 290 tur. Mapa sama podnosi poziom założycieli, a potem każde pokolenie zaczyna od zera. Dopiero razem dają osadę, w której każde pokolenie startuje wyżej.
+- **Samo podglądanie nie daje nic mierzalnego.** Sąsiedzi stoją obok siebie zbyt rzadko, żeby cudze ruchy zmieniły tablicę.
+- **Mapa jako kierunek w stanie Q nie działała.** Sprawdziliśmy trzy wersje: dwa kierunki (do wody i do jedzenia), jeden kierunek do pilniejszego zasobu i kierunek z przedziałem odległości. Żadna nie odróżniała się od osady kontrolnej, bo tablica musiała uczyć się chodzenia osobno dla każdego otoczenia. Zadziałała dopiero mapa jako ruch „idź do znanego miejsca”.
+- **Pełne zaufanie przy dziedziczeniu szkodzi.** Z zaufaniem 1,0 osada zatrzymała się na 257 turach, bo noworodki przestały eksperymentować. Zaufanie 0,25 zostawia im powód, żeby sprawdzać wiedzę starszych.
+- **Wyniki pochodzą z jednego seeda.** Różnice między osadą z wymianą a kontrolną są duże (3 do 4 razy), ale liczby w pojedynczych pokoleniach wahają się o kilkadziesiąt tur.
+
+Zrzut okna po treningu: [img/stage-2-show.png](img/stage-2-show.png).
+
 ## Do decyzji
 
 Każde pytanie ma odpowiedź domyślną, więc praca nie musi czekać.
@@ -103,4 +132,5 @@ Każde pytanie ma odpowiedź domyślną, więc praca nie musi czekać.
 - Gdzie rodzi się noworodek? Domyślnie na losowym bezpiecznym polu w polu 3×3 losowej żyjącej postaci.
 - Po kim dziedziczy noworodek? Domyślnie po wszystkich sąsiadach z pierwszej tury życia.
 - Czy podglądanie zwiększa liczniki prób? Domyślnie tak: cudze doświadczenie to też dowód.
-- Jak długo żyją postacie? Wartości z tabeli dobrane tak, żeby przebieg mieścił 3 pokolenia w kilkunastu minutach. Stroimy je w kroku 2.6 po pomiarze tempa nauki.
+- Jak długo żyją postacie? Wartości z tabeli dobrane tak, żeby przebieg mieścił 4 pokolenia w kilkunastu minutach. Pomiar w kroku 2.6 ich nie zmienił.
+- Jak postać korzysta z mapy? Przyjęte w kroku 2.5: przez osobny ruch „idź do znanego miejsca”, a nie przez kierunek w stanie Q.

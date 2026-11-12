@@ -5,8 +5,8 @@ Każdy etap kończy się czymś, co widać w oknie albo na wykresie. Etap 1 ma p
 | Etap | Nazwa | Skala | Status |
 |---|---|---|---|
 | 1 | Mała osada | 5 postaci, plansza 20×20 | Ukończony |
-| 2 | Wspólna wiedza | 10–20 postaci, kolejne pokolenia | Następny |
-| 3 | Tworzenie świata | 20–50 postaci, plansza 64×64, pory roku | Planowany |
+| 2 | Wspólna wiedza | 12 postaci, kolejne pokolenia | Ukończony |
+| 3 | Tworzenie świata | 20–50 postaci, plansza 64×64, pory roku | Następny |
 | 4 | Przepisywanie reguł | jak w etapie 3 | Planowany |
 | 5 | Relacje między osadami | 3–5 osad | Planowany |
 | 6 | Rywalizacja | wiele osad | Planowany |
@@ -18,7 +18,7 @@ Postacie nie dostają gotowych zachowań. W każdym etapie uczą się z własnyc
 | Etap | Co się uczy | Co samo rośnie |
 |---|---|---|
 | 1 | każda postać: które ruchy pozwalają przeżyć | tablica Q o nowe sytuacje; postać sama stroi epsilon i alpha z liczników odwiedzin |
-| 2 | osada: wiedza przechodzi na kolejne pokolenia | wspólna mapa odkryć; sieć zastępuje tablice, gdy te urosną za bardzo |
+| 2 | osada: wiedza przechodzi na kolejne pokolenia | wspólna mapa odkryć i tablice dziedziczone po starszych; każde pokolenie startuje wyżej |
 | 3 | postacie: działania z opóźnioną nagrodą | zestaw akcji złożonych; świat zmieniany przez postacie |
 | 4 | osada: które reguły działają | zbiór reguł z historią wersji, poprawiany przez osadę |
 | 5 | osady: handel i zaufanie | zwyczaje i specjalizacja każdej osady |
@@ -54,8 +54,23 @@ Postać widzi tylko sąsiednie pola, więc zasobu szuka wędrówką, a nie marsz
 Wiedza przeżywa pojedyncze postacie.
 
 - **Świat:** postacie starzeją się i umierają, a na ich miejsce rodzą się nowe z pustą pamięcią. Uczyć się można tylko od sąsiada, więc świat podaje, kto stoi obok kogo.
-- **Mózgi:** osada prowadzi wspólną mapę odkryć. Noworodek startuje od uśrednionej wiedzy starszych i podgląda ich ruchy. Gdy tablice Q urosną za bardzo, przechodzimy na małą sieć w PyTorchu.
+- **Mózgi:** osada prowadzi wspólną mapę odkryć, z której postać korzysta ruchem „idź do znanego miejsca”. Noworodek startuje od uśrednionej wiedzy starszych i podgląda ich ruchy. Sieć w PyTorchu wchodzi tylko wtedy, gdy tablice Q urosną za bardzo.
 - **Gotowe, gdy:** noworodki z wymianą wiedzy dochodzą do poziomu dorosłych co najmniej 2 razy szybciej niż w osadzie kontrolnej bez niej.
+
+Kroki i parametry: [docs/stage-2.md](docs/stage-2.md).
+
+**Wyniki (seed 42, 12 postaci, 400 000 tur):** średnia długość życia dorosłych w kolejnych pokoleniach, przy poziomie dorosłych równym 434 tury.
+
+| Osada | Założyciele | Pok. 1 | Pok. 2 | Pok. 3 | Pok. 4 |
+|---|---|---|---|---|---|
+| Kontrolna (bez wymiany) | 151 | 142 | 141 | 140 | 140 |
+| Z wymianą wiedzy | 210 | 388 | 435 | 518 | 459 |
+
+W osadzie z wymianą wiedzy każde pokolenie startuje wyżej od poprzedniego. Połowa noworodków dochodzi do poziomu dorosłych po 18 500 turach życia w pokoleniu 1 i po 4900 w pokoleniu 4. W osadzie kontrolnej nie dochodzi do niego żaden. W przebiegu wydłużonym do 600 000 tur poziom trzyma się przez siedem pokoleń.
+
+Tablice Q pozostały małe (około 2700 sytuacji na postać), więc sieć w PyTorchu nie była potrzebna i wchodzi dopiero w etapie 3. Podglądanie ruchów sąsiada nie dało mierzalnego efektu; wiedzę niosą dziedziczenie i mapa.
+
+![Okno trybu pokazu w etapie 2](docs/img/stage-2-show.png)
 
 ## Etap 3: Tworzenie świata
 

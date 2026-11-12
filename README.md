@@ -8,11 +8,11 @@ Symulacja świata NPC. Grupa postaci startuje bez żadnej wiedzy i uczy się met
 | Mózgi postaci | Python 3.14, uv |
 | Połączenie | gRPC, Protocol Buffers |
 
-**Status:** etap 1 (mała osada) ukończony. Wytrenowane postacie żyją 6,5 razy dłużej niż losowe. Następny jest etap 2 (wspólna wiedza).
+**Status:** etapy 1 (mała osada) i 2 (wspólna wiedza) ukończone. Wytrenowane postacie żyją 6,5 razy dłużej niż losowe, a osada przekazuje wiedzę kolejnym pokoleniom. Następny jest etap 3 (tworzenie świata).
 
 ## Dokumenty
 
 - [ROADMAP.md](ROADMAP.md): etapy i kryteria ukończenia
-- [docs/stage-1.md](docs/stage-1.md): specyfikacja etapu 1 i lista kroków
+- [docs/stage-1.md](docs/stage-1.md), [docs/stage-2.md](docs/stage-2.md): specyfikacje etapów, kroki i wyniki
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): technologie, kontrakt gRPC, decyzje
 - [CLAUDE.md](CLAUDE.md): instrukcje dla Claude Code

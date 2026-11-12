@@ -130,7 +130,7 @@ public final class ShowApp extends Application {
         chart.setLegendVisible(false);
         chart.setCreateSymbols(false);
         chart.setAnimated(false);
-        chart.setPrefSize(460, 360);
+        chart.setPrefSize(460, 260);
         chart.getData().add(series);
         return chart;
     }

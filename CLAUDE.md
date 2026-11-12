@@ -7,12 +7,12 @@ Symulacja świata NPC: postacie startują bez żadnej wiedzy, uczą się metodą
 Przeczytaj je przed pierwszą zmianą w sesji:
 
 - `ROADMAP.md`: wszystkie etapy, status i kryteria ukończenia.
-- `docs/stage-1.md`: specyfikacja bieżącego etapu, parametry i lista kroków.
+- `docs/stage-1.md`, `docs/stage-2.md`: specyfikacje ukończonych etapów, parametry, kroki i wyniki odbioru. Specyfikacja kolejnego etapu powstaje jako `docs/stage-3.md`.
 - `docs/ARCHITECTURE.md`: technologie, kontrakt gRPC i decyzje z uzasadnieniem.
 
 ## Jak pracujemy
 
-- Bieżący krok to pierwszy nieodhaczony krok w specyfikacji bieżącego etapu (etap 1: `docs/stage-1.md`, ukończony). Rób jeden krok naraz i kończ go dopiero, gdy spełnia warunek „Gotowe, gdy”.
+- Bieżący krok to pierwszy nieodhaczony krok w specyfikacji bieżącego etapu (etapy 1 i 2 są ukończone). Rób jeden krok naraz i kończ go dopiero, gdy spełnia warunek „Gotowe, gdy”.
 - Nie dokładaj niczego z późniejszych etapów (PyTorch, baza danych, Spring Boot, model językowy, Unity), dopóki `ROADMAP.md` ich nie odblokuje.
 - Gdy specyfikacja czegoś nie rozstrzyga, zajrzyj do sekcji „Do decyzji” w specyfikacji etapu. Przyjmij wartość domyślną i opisz wybór w podsumowaniu kroku.
 - Po każdym kroku uruchom testy obu części i odhacz krok. Nową decyzję albo zmianę kontraktu dopisz do `docs/ARCHITECTURE.md`.
@@ -85,7 +85,26 @@ uv run python scripts/train.py --variant self --evaluate --ticks 50000
 uv run python scripts/summarize.py
 ```
 
-Tryb pokazu: najpierw serwer z wytrenowanymi tablicami w katalogu `brain/`, potem okno w katalogu głównym repo. `--tps 50` przyspiesza pokaz, `--snapshot out\show.png` zapisuje zrzut okna:
+Etap 2 (osada z pokoleniami), w katalogu `brain/`. `--sharing` wybiera mechanizmy wymiany wiedzy (`all`, `none`, `inherit`, `observe`, `map`), `--name` nazywa pliki wyjściowe i katalog tablic, `--episodes` zapisuje dziennik epizodów:
+
+```
+uv run python scripts/train.py --variant random --config ../config/stage-2.yaml --name s2-random --ticks 100000
+uv run python scripts/train.py --variant self --config ../config/stage-2.yaml --name s2-all --sharing all --episodes
+uv run python scripts/train.py --variant self --config ../config/stage-2.yaml --name s2-none --sharing none --episodes
+uv run python scripts/generations.py --baseline s2-random --runs s2-all s2-none
+```
+
+Tryb pokazu etapu 2: serwer w katalogu `brain/`, okno w katalogu głównym repo. W `config/stage-2.yaml` nikt się nie starzeje przez pierwsze 150 000 tur, więc narodziny zobaczysz dopiero po rozruchu albo z `--tps 400`:
+
+```
+uv run python -m brain.server --config ../config/stage-2.yaml --mode show --data-dir data/s2-all
+```
+
+```
+& "$env:JAVA_HOME\bin\java" -jar world\world-view\target\world-view.jar --config config\stage-2.yaml
+```
+
+Tryb pokazu etapu 1: najpierw serwer z wytrenowanymi tablicami w katalogu `brain/`, potem okno w katalogu głównym repo. `--tps 50` przyspiesza pokaz, `--snapshot out\show.png` zapisuje zrzut okna:
 
 ```
 uv run python -m brain.server --mode show

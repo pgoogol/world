@@ -129,12 +129,23 @@ Wygenerowanego kodu nie commitujemy w żadnym języku.
 40. **Okno jako zwykły jar.** Klasa startowa `ShowMain` nie dziedziczy po `Application`, więc JavaFX działa z classpath i okno rusza przez `java -jar`. Opcja `--snapshot` zapisuje zrzut okna do PNG własnym, krótkim koderem, bez zależności `javafx-swing`.
 41. **Trening trwa 700 000 tur.** Przy 300 000 turach samostrojenie dochodziło do 2,9× mózgu losowego i krzywa wciąż rosła. Przy 700 000 daje 6,5×. Długość siedzi w `training.ticks`, jeden przebieg trwa około 5 minut.
 42. **Stały harmonogram przegrywa przez stałą alpha i ślepy epsilon.** Po 200 000 tur eksploruje już tylko 5% ruchów, także w sytuacjach, których prawie nie zna. Samostrojenie eksperymentuje dokładnie tam, gdzie ma mało doświadczeń.
+43. **Dwa rodzaje końca życia.** Upadek (energia 0) zostawia pamięć jak w etapie 1. Śmierć ze starości zabiera postać na stałe, a świat zgłasza jej numer w `retired_npc_ids`, żeby mózg ją zapomniał. Bez tego rozróżnienia nikt nie zdążyłby się niczego nauczyć.
+44. **Noworodek dostaje nowy numer i miejsce zmarłego na liście postaci.** Rodzi się na bezpiecznym polu obok losowej żyjącej postaci. Pokolenie to pokolenie zastąpionej postaci plus jeden.
+45. **Rozruch i rozłożony wiek założycieli.** Przed turą `aging_start_tick` nikt się nie starzeje. Założyciele startują z wiekiem rozłożonym równo od zera do długości życia, więc umierają po kolei.
+46. **Etap 2 tylko dokłada pola do kontraktu.** Pozycja w `Observation`, sąsiedzi w `NpcView`, zmarli ze starości w `StepRequest`. Pliki konfiguracji etapu 1 działają bez zmian, bo nowe ustawienia mają wartości domyślne równe zachowaniu etapu 1.
+47. **Port `Brain` dostaje `npcsRetired`.** `GrpcBrain` zbiera numery i wysyła je z następnym `Step`, więc tura dalej kosztuje jedno wywołanie.
+48. **Wymiana wiedzy żyje w mózgach, świat podaje tylko sąsiadów.** Dziedziczenie, podglądanie i wymianę map wykonuje `BrainGroup` na podstawie `neighbour_ids`. Każdy mechanizm ma przełącznik w `brain.sharing`.
+49. **Dziedziczenie: średnia ważona licznikami, liczniki razy zaufanie.** Wartość akcji u noworodka to średnia wartości u sąsiadów ważona liczbą ich prób. Liczniki mnożymy przez `inherit_trust` (0,25), żeby samostrojenie kazało noworodkowi sprawdzać wiedzę z drugiej ręki. Pełne zaufanie zatrzymało osadę na 257 turach.
+50. **Mapa odkryć jako umiejętność, nie jako cecha stanu.** Mózg z mapą ma siódmy wybór „idź do znanego miejsca” i sam zamienia go na jeden z sześciu ruchów kontraktu. Stan Q mówi tylko, czy postać zna miejsce z zasobem, którego potrzebuje bardziej. Kierunek w stanie Q nie działał w żadnej z trzech wersji.
+51. **Dziennik epizodów.** `--episodes` zapisuje wiersz na każdy epizod życia, narodziny i śmierć ze starości. Z niego `scripts/generations.py` liczy poziom pokoleń i wiek, w którym postać dochodzi do poziomu dorosłych (średnia z 5 ostatnich epizodów).
+52. **Nowy przebieg przejmuje zapisane mózgi w kolejności numerów.** Po pokoleniach zapisane postacie mają wysokie numery, a nowy świat numeruje od zera. Założyciele bez własnego zapisu biorą kolejne zapisane mózgi, więc tryb pokazu startuje z wiedzą ostatnich żyjących.
+53. **PyTorch nie wszedł w etapie 2.** Tablica jednej postaci ma około 2700 sytuacji przy progu 200 000, a mapa przyspiesza naukę. Sieć wchodzi w etapie 3 razem z PPO.
 
 ## Co dochodzi później
 
 | Etap | Technologia | Po co |
 |---|---|---|
-| 2–3 | PyTorch | sieć zamiast tablic Q, w etapie 3 PPO dla opóźnionych nagród |
+| 3 | PyTorch | sieć zamiast tablic Q i PPO dla opóźnionych nagród |
 | 3 | Spring Boot, PostgreSQL, Flyway | historia świata, zapis i wczytywanie stanu |
 | 4 | LM Studio, serwer zgodny z API OpenAI | propozycje zmian reguł z uzasadnieniem |
 | 5 | Unity 6 | widok 3D wielu osad |

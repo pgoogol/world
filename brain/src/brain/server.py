@@ -53,6 +53,10 @@ def build_group(config: BrainConfig, mode: str = "train", data_dir: Path | None 
     path = tables_path(config, data_dir)
     saved = {} if fresh else load_brains(path)
     learning = mode == "train"
+    # A settlement that went through generations saved its last living NPCs under high ids, while
+    # a new world numbers its founders from zero. Founders without a saved state of their own take
+    # over the saved ones in id order, so a new run starts with the knowledge the last one ended with.
+    unclaimed = sorted(saved)
 
     def create(npc_id: int) -> QLearningBrain:
         sharing = config.sharing
@@ -61,8 +65,10 @@ def build_group(config: BrainConfig, mode: str = "train", data_dir: Path | None 
             npc_rng(config.seed, npc_id), config.gamma, config.need_levels, build_tuning(config),
             learning=learning, discovery=discovery,
         )
-        if npc_id in saved:
-            brain.import_state(saved[npc_id])
+        source = npc_id if npc_id in unclaimed else (unclaimed[0] if unclaimed else None)
+        if source is not None:
+            unclaimed.remove(source)
+            brain.import_state(saved[source])
         return brain
 
     if learning:
