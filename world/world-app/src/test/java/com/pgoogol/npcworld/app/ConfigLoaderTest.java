@@ -3,7 +3,12 @@ package com.pgoogol.npcworld.app;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.pgoogol.npcworld.core.EconomyConfig;
+import com.pgoogol.npcworld.core.PopulationConfig;
+import com.pgoogol.npcworld.core.SeasonConfig;
+import com.pgoogol.npcworld.core.WorldConfig;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -44,6 +49,34 @@ class ConfigLoaderTest {
         assertThat(config.world().lifespanTicks()).isEqualTo(60_000);
         assertThat(config.world().lifespanSpread()).isEqualTo(0.2);
         assertThat(config.world().agingStartTick()).isEqualTo(150_000);
+    }
+
+    @Test
+    void stageOneAndTwoFilesMeanNoStageThreeRules() throws Exception {
+        for (String file : new String[] {"stage-1.yaml", "stage-2.yaml"}) {
+            AppConfig config = ConfigLoader.load(Path.of("..", "..", "config", file));
+
+            assertThat(config.world().seasons()).isEqualTo(SeasonConfig.NONE);
+            assertThat(config.world().economy()).isEqualTo(EconomyConfig.NONE);
+            assertThat(config.world().population()).isEqualTo(PopulationConfig.CLASSIC);
+            assertThat(config.world().viewRadius()).isEqualTo(1);
+            assertThat(config.world().rewards().winterSurvived()).isZero();
+        }
+    }
+
+    @Test
+    void readsTheStageThreeAdditions() throws Exception {
+        AppConfig config = ConfigLoader.load(Path.of("..", "..", "config", "stage-3.yaml"));
+        WorldConfig world = config.world();
+
+        assertThat(world.width()).isEqualTo(64);
+        assertThat(world.npcs()).isEqualTo(20);
+        assertThat(world.viewRadius()).isEqualTo(3);
+        assertThat(world.lifeLimitEnabled()).isFalse();
+        assertThat(world.seasons()).isEqualTo(new SeasonConfig(500, List.of(100, 100, 50, 0), 1, true));
+        assertThat(world.economy()).isEqualTo(new EconomyConfig(0.05, 300, 4, 300, 4, 6, 30, 4, 4, 20, 100));
+        assertThat(world.population()).isEqualTo(new PopulationConfig(true, false, 4, 50, 10, 5, 250));
+        assertThat(world.rewards().winterSurvived()).isEqualTo(5.0);
     }
 
     @Test

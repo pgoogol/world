@@ -21,6 +21,13 @@ final class BoardPainter {
     private static final Color FOOD = Color.web("#5aa845");
     private static final Color WATER = Color.web("#3f8fd9");
     private static final Color LAVA = Color.web("#e2542b");
+    private static final Color TREE = Color.web("#2f6b2a");
+    private static final Color STUMP = Color.web("#8a6d4b");
+    private static final Color FIELD_SOWN = Color.web("#c9b27c");
+    private static final Color FIELD_RIPE = Color.web("#e0b43c");
+    private static final Color SITE = Color.web("#b9a58c");
+    private static final Color SHELTER = Color.web("#7a4f2a");
+    private static final Color STORE = Color.web("#5a3a8a");
     private static final Color[] NPC_COLORS = {
         Color.web("#7b3fa0"), Color.web("#c2185b"), Color.web("#00796b"), Color.web("#5d4037"), Color.web("#283593"),
     };
@@ -116,6 +123,13 @@ final class BoardPainter {
             case FOOD -> FOOD;
             case WATER -> WATER;
             case LAVA -> LAVA;
+            case TREE -> TREE;
+            case STUMP -> STUMP;
+            case FIELD_SOWN -> FIELD_SOWN;
+            case FIELD_RIPE -> FIELD_RIPE;
+            case SITE_SHELTER, SITE_STORE -> SITE;
+            case SHELTER -> SHELTER;
+            case STORE -> STORE;
         };
     }
 }

@@ -16,17 +16,24 @@ service Brain {
 message StepRequest {
   int64 tick = 1;
   repeated NpcView npcs = 2;
-  repeated int32 retired_npc_ids = 3;  // NPCs that died of old age since the previous request; their brains are gone
+  repeated int32 retired_npc_ids = 3;  // NPCs gone for good since the previous request (old age; from stage 3 any death)
+  int32 settlement_id = 4;             // stage 3: one settlement (0); several from stage 5
 }
 
 // What a single NPC perceives: raw values, the brain does its own encoding.
 message Observation {
-  repeated Cell surroundings = 1;  // 3x3 around the NPC, row by row; the centre is the NPC's own cell
+  repeated Cell surroundings = 1;  // view_size x view_size around the NPC, row by row; the centre is the NPC's own cell
   int32 hunger = 2;                // 0-100
   int32 thirst = 3;                // 0-100
   int32 energy = 4;                // 0-100
   int32 x = 5;                     // the NPC's own position on the board; x grows to the right
   int32 y = 6;                     // y grows downwards
+  int32 view_size = 7;             // side of the surroundings square: 3 in stages 1 and 2, 7 in stage 3
+  int32 carried_food = 8;          // stage 3: food portions the NPC carries
+  int32 carried_wood = 9;          // stage 3: wood the NPC carries
+  int32 season = 10;               // stage 3: 1 spring, 2 summer, 3 autumn, 4 winter; 0 without seasons
+  int32 season_ticks_left = 11;    // stage 3: ticks until the season changes; 0 without seasons
+  int32 here_amount = 12;          // stage 3: portions on a ripe field, food in a store or wood on a building site under the NPC
 }
 
 message NpcView {
@@ -56,6 +63,14 @@ enum Action {
   ACTION_LEFT = 4;
   ACTION_RIGHT = 5;
   ACTION_CONSUME = 6;  // eat or drink on the current cell
+  // Stage 3: everything below acts on the current cell or on what the NPC carries.
+  ACTION_GATHER = 7;         // pick up food from wild food or a ripe field, or wood from a tree
+  ACTION_EAT_CARRIED = 8;    // eat one carried food portion
+  ACTION_PLANT = 9;          // sow one carried food portion on an empty cell
+  ACTION_BUILD_SHELTER = 10; // start a shelter site on an empty cell, bring wood to it or work on it
+  ACTION_BUILD_STORE = 11;   // the same for a store
+  ACTION_DEPOSIT = 12;       // put all carried food into a store
+  ACTION_WITHDRAW = 13;      // take one food portion from a store
 }
 
 enum Cell {
@@ -65,4 +80,13 @@ enum Cell {
   CELL_WATER = 3;
   CELL_LAVA = 4;
   CELL_WALL = 5;
+  // Stage 3.
+  CELL_TREE = 6;
+  CELL_STUMP = 7;            // a felled tree; grows back
+  CELL_FIELD_SOWN = 8;
+  CELL_FIELD_RIPE = 9;
+  CELL_SITE_SHELTER = 10;    // building site of a shelter
+  CELL_SITE_STORE = 11;      // building site of a store
+  CELL_SHELTER = 12;
+  CELL_STORE = 13;
 }

@@ -5,5 +5,15 @@ public enum CellType {
     FOOD,
     WATER,
     LAVA,
-    WALL
+    WALL,
+    // Stage 3.
+    TREE,
+    /** A felled tree; grows back into a tree. */
+    STUMP,
+    FIELD_SOWN,
+    FIELD_RIPE,
+    SITE_SHELTER,
+    SITE_STORE,
+    SHELTER,
+    STORE
 }

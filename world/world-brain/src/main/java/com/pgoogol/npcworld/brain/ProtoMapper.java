@@ -36,7 +36,13 @@ final class ProtoMapper {
                 .setThirst(observation.thirst())
                 .setEnergy(observation.energy())
                 .setX(observation.position().x())
-                .setY(observation.position().y());
+                .setY(observation.position().y())
+                .setViewSize(observation.viewSize())
+                .setCarriedFood(observation.carriedFood())
+                .setCarriedWood(observation.carriedWood())
+                .setSeason(observation.season())
+                .setSeasonTicksLeft(observation.seasonTicksLeft())
+                .setHereAmount(observation.hereAmount());
         observation.surroundings().forEach(cell -> builder.addSurroundings(toProto(cell)));
         return builder.build();
     }
@@ -48,6 +54,14 @@ final class ProtoMapper {
             case WATER -> Cell.CELL_WATER;
             case LAVA -> Cell.CELL_LAVA;
             case WALL -> Cell.CELL_WALL;
+            case TREE -> Cell.CELL_TREE;
+            case STUMP -> Cell.CELL_STUMP;
+            case FIELD_SOWN -> Cell.CELL_FIELD_SOWN;
+            case FIELD_RIPE -> Cell.CELL_FIELD_RIPE;
+            case SITE_SHELTER -> Cell.CELL_SITE_SHELTER;
+            case SITE_STORE -> Cell.CELL_SITE_STORE;
+            case SHELTER -> Cell.CELL_SHELTER;
+            case STORE -> Cell.CELL_STORE;
         };
     }
 
@@ -59,6 +73,13 @@ final class ProtoMapper {
             case ACTION_LEFT -> Action.LEFT;
             case ACTION_RIGHT -> Action.RIGHT;
             case ACTION_CONSUME -> Action.CONSUME;
+            case ACTION_GATHER -> Action.GATHER;
+            case ACTION_EAT_CARRIED -> Action.EAT_CARRIED;
+            case ACTION_PLANT -> Action.PLANT;
+            case ACTION_BUILD_SHELTER -> Action.BUILD_SHELTER;
+            case ACTION_BUILD_STORE -> Action.BUILD_STORE;
+            case ACTION_DEPOSIT -> Action.DEPOSIT;
+            case ACTION_WITHDRAW -> Action.WITHDRAW;
             case ACTION_UNSPECIFIED, UNRECOGNIZED ->
                     throw new BrainProtocolException("Brain sent no valid action for NPC " + npcId + ": " + action);
         };

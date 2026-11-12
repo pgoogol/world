@@ -95,7 +95,7 @@ public final class World {
         }
 
         tick++;
-        board.regrow(tick);
+        board.grow(config.seasons().growthAt(tick - 1), config.economy().fieldYield());
 
         for (int i = 0; i < npcs.size(); i++) {
             settle(npcs.get(i), consumeRewards[i]);
@@ -121,8 +121,8 @@ public final class World {
     }
 
     public WorldSnapshot snapshot() {
-        return new WorldSnapshot(tick, board.width(), board.height(), board.cells(),
-                npcs.stream().map(Npc::snapshot).toList());
+        return new WorldSnapshot(tick, config.seasons().seasonAt(tick), board.width(), board.height(), board.cells(),
+                board.amounts(), npcs.stream().map(Npc::snapshot).toList());
     }
 
     /** For tests: direct access to the NPC in a slot (slot = id until someone dies of old age). */
@@ -145,7 +145,7 @@ public final class World {
         if (cell == CellType.FOOD) {
             double reward = npc.hunger >= rewards.consumeNeedMin() ? rewards.consume() : 0;
             npc.hunger = Math.max(0, npc.hunger - config.consumeRelief());
-            board.eatFood(npc.position, tick + config.foodRegrowTicks());
+            board.eatFood(npc.position, config.foodRegrowTicks());
             return reward;
         }
         if (cell == CellType.WATER) {
@@ -192,7 +192,7 @@ public final class World {
         }
 
         npc.reward = config.rewards().perTick() + consumeReward;
-        if (npc.age >= config.lifeLimit()) {
+        if (config.lifeLimitEnabled() && npc.age >= config.lifeLimit()) {
             npc.truncated = true;
             npc.finalObservation = observe(npc);
             endLife(npc, LifeEnded.Cause.LIFE_LIMIT);
@@ -259,10 +259,14 @@ public final class World {
     }
 
     private Observation observe(Npc npc) {
-        List<CellType> surroundings = new ArrayList<>(9);
-        for (int dy = -1; dy <= 1; dy++) {
-            for (int dx = -1; dx <= 1; dx++) {
-                surroundings.add(board.get(npc.position.x() + dx, npc.position.y() + dy));
+        int radius = config.viewRadius();
+        List<CellType> surroundings = new ArrayList<>((2 * radius + 1) * (2 * radius + 1));
+        for (int dy = -radius; dy <= radius; dy++) {
+            for (int dx = -radius; dx <= radius; dx++) {
+                int x = npc.position.x() + dx;
+                int y = npc.position.y() + dy;
+                // Beyond the board there is only more wall.
+                surroundings.add(board.contains(x, y) ? board.get(x, y) : CellType.WALL);
             }
         }
         return new Observation(surroundings, npc.hunger, npc.thirst, npc.energy, npc.position);

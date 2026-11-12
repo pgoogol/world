@@ -3,23 +3,40 @@ package com.pgoogol.npcworld.core;
 import java.util.Arrays;
 import java.util.List;
 
-/** Grid of cells surrounded by a wall. Eaten food leaves an empty cell that turns back into food later. */
+/**
+ * Grid of cells surrounded by a wall.
+ *
+ * <p>Some cells change on their own over time: eaten wild food grows back, a stump grows back into
+ * a tree, a sown field ripens. Each such cell has a growth timer counted in growth points (100 per
+ * tick of full growth, see {@link SeasonConfig}) and the cell type it turns into. A timer only fires
+ * while the cell still is what it was when the timer started; anything built over it cancels it.
+ *
+ * <p>{@code amount} holds the portions on a ripe field, the food in a store or the wood brought to a
+ * building site; {@code work} holds the work done on a building site.
+ */
 final class Board {
 
-    private static final long NO_REGROWTH = -1;
+    static final int FULL_GROWTH = 100;
+    private static final int NO_TIMER = -1;
 
     private final int width;
     private final int height;
     private final CellType[] cells;
-    private final long[] regrowAt;
+    private final int[] timer;
+    private final CellType[] growsInto;
+    private final int[] amount;
+    private final int[] work;
 
     Board(int width, int height) {
         this.width = width;
         this.height = height;
         this.cells = new CellType[width * height];
-        this.regrowAt = new long[width * height];
+        this.timer = new int[width * height];
+        this.growsInto = new CellType[width * height];
+        this.amount = new int[width * height];
+        this.work = new int[width * height];
         Arrays.fill(cells, CellType.EMPTY);
-        Arrays.fill(regrowAt, NO_REGROWTH);
+        Arrays.fill(timer, NO_TIMER);
         for (int x = 0; x < width; x++) {
             set(x, 0, CellType.WALL);
             set(x, height - 1, CellType.WALL);
@@ -38,6 +55,10 @@ final class Board {
         return height;
     }
 
+    boolean contains(int x, int y) {
+        return x >= 0 && y >= 0 && x < width && y < height;
+    }
+
     CellType get(int x, int y) {
         return cells[y * width + x];
     }
@@ -54,19 +75,86 @@ final class Board {
         set(position.x(), position.y(), type);
     }
 
-    /** Removes the food from a cell and schedules its return. */
-    void eatFood(Position position, long regrowTick) {
-        int index = position.y() * width + position.x();
-        cells[index] = CellType.EMPTY;
-        regrowAt[index] = regrowTick;
+    int amount(Position position) {
+        return amount[index(position)];
     }
 
-    /** Puts food back on every cell whose regrowth tick has come. */
-    void regrow(long tick) {
+    void setAmount(Position position, int value) {
+        amount[index(position)] = value;
+    }
+
+    int work(Position position) {
+        return work[index(position)];
+    }
+
+    void setWork(Position position, int value) {
+        work[index(position)] = value;
+    }
+
+    /**
+     * Turns the cell into {@code now} and starts a timer: after {@code ticks} ticks of full growth
+     * the cell becomes {@code later}, provided it is still {@code now} by then.
+     */
+    void startGrowth(Position position, CellType now, CellType later, int ticks) {
+        int index = index(position);
+        cells[index] = now;
+        timer[index] = ticks * FULL_GROWTH;
+        growsInto[index] = later;
+    }
+
+    /** Turns the cell into {@code type} and cancels any growth timer on it. */
+    void replace(Position position, CellType type) {
+        int index = index(position);
+        cells[index] = type;
+        timer[index] = NO_TIMER;
+        growsInto[index] = null;
+    }
+
+    /** Removes the food from a cell and schedules its return after {@code regrowTicks} ticks of full growth. */
+    void eatFood(Position position, int regrowTicks) {
+        startGrowth(position, CellType.EMPTY, CellType.FOOD, regrowTicks);
+    }
+
+    /**
+     * Advances every growth timer by {@code points} and applies the ones that finished.
+     * {@code fieldYield} is put on every field that ripens.
+     */
+    void grow(int points, int fieldYield) {
+        if (points <= 0) {
+            return;
+        }
         for (int index = 0; index < cells.length; index++) {
-            if (regrowAt[index] != NO_REGROWTH && regrowAt[index] <= tick) {
-                cells[index] = CellType.FOOD;
-                regrowAt[index] = NO_REGROWTH;
+            if (timer[index] == NO_TIMER) {
+                continue;
+            }
+            timer[index] -= points;
+            if (timer[index] <= 0) {
+                CellType next = growsInto[index];
+                timer[index] = NO_TIMER;
+                growsInto[index] = null;
+                if (startedFrom(next) == cells[index]) {
+                    cells[index] = next;
+                    if (next == CellType.FIELD_RIPE) {
+                        amount[index] = fieldYield;
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Stage 3, first day of winter: wild food and unharvested ripe fields are gone. Wild food grows
+     * back after {@code foodRegrowTicks} ticks of full growth, so in practice in spring.
+     */
+    void winterRot(int foodRegrowTicks) {
+        for (int index = 0; index < cells.length; index++) {
+            if (cells[index] == CellType.FOOD) {
+                cells[index] = CellType.EMPTY;
+                timer[index] = foodRegrowTicks * FULL_GROWTH;
+                growsInto[index] = CellType.FOOD;
+            } else if (cells[index] == CellType.FIELD_RIPE) {
+                cells[index] = CellType.EMPTY;
+                amount[index] = 0;
             }
         }
     }
@@ -79,5 +167,23 @@ final class Board {
 
     List<CellType> cells() {
         return List.of(cells);
+    }
+
+    List<Integer> amounts() {
+        return Arrays.stream(amount).boxed().toList();
+    }
+
+    private int index(Position position) {
+        return position.y() * width + position.x();
+    }
+
+    /** What a cell has to be while it grows into {@code next}. */
+    private static CellType startedFrom(CellType next) {
+        return switch (next) {
+            case FOOD -> CellType.EMPTY;
+            case TREE -> CellType.STUMP;
+            case FIELD_RIPE -> CellType.FIELD_SOWN;
+            default -> throw new IllegalStateException("Nothing grows into " + next);
+        };
     }
 }

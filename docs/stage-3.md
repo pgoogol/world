@@ -1,6 +1,6 @@
 # Etap 3: Tworzenie świata
 
-Status: plan. Kroki są do wykonania po kolei, parametry stroimy w trakcie.
+Status: w toku. Kroki są do wykonania po kolei, parametry stroimy w trakcie.
 
 ## Cel
 
@@ -19,15 +19,18 @@ Plan opiera się na czterech rzeczach, które zmierzyliśmy:
 
 ## Świat (`world-core`)
 
-Zasady etapów 1 i 2 obowiązują dalej, z jedną zmianą: śmierć jest ostateczna.
+Zasady etapów 1 i 2 obowiązują dalej. Każda nowa zasada ma przełącznik albo parametr w konfiguracji, a jego wartość domyślna odtwarza zachowanie etapów 1 i 2.
 
-- **Plansza 64×64.** Typy pól z etapu 1 plus drzewo, pole uprawne (zasiane, dojrzałe), schronienie i magazyn.
-- **Pory roku.** Rok ma cztery pory o równej długości. Wiosną i latem jedzenie odrasta, jesienią wolniej, zimą wcale. Zimą postać poza schronieniem traci energię z zimna.
-- **Przedmioty.** Postać nosi ograniczoną liczbę przedmiotów: drewno, jedzenie, nasiona. Zjedzone jedzenie z pola daje nasiona.
-- **Sadzenie.** Postać sadzi nasiona na pustym polu. Pole dojrzewa po określonej liczbie tur ciepłych pór i daje kilka porcji jedzenia.
-- **Budowanie.** Schronienie i magazyn kosztują drewno i kilka tur pracy. Schronienie chroni przed zimnem postacie, które w nim stoją. Magazyn przechowuje jedzenie, które się nie psuje i nie znika.
-- **Śmierć i narodziny.** Upadek z głodu, pragnienia, zimna albo lawy oznacza śmierć na stałe, tak jak starość. Noworodek rodzi się tylko wtedy, gdy osada ma nadwyżkę jedzenia w magazynie i wolne miejsce w schronieniach. Osada może więc rosnąć, kurczyć się i wymrzeć.
-- **Nagroda.** Liczy ją świat, jak dotąd. Dochodzi mały plus za jedzenie odłożone do magazynu i za przeżycie zimy. Nagrody za samo sadzenie i budowanie nie ma: ich wartość postać ma odkryć przez opóźniony skutek.
+- **Plansza 64×64.** Typy pól z etapu 1 plus drzewo, pniak, pole zasiane, pole dojrzałe, plac budowy schronienia, plac budowy magazynu, schronienie i magazyn. Po każdym polu poza ścianą i lawą da się chodzić.
+- **Pory roku.** Rok ma cztery pory o równej długości: wiosnę, lato, jesień i zimę. Odrastanie jedzenia, drzew i pól liczy punkty wzrostu: wiosną i latem pełne, jesienią połowa, zimą zero. Pierwszego dnia zimy dzikie jedzenie i niezebrane dojrzałe pola marnieją, a dzikie jedzenie odrasta dopiero wiosną. Zimą postać poza schronieniem traci energię z zimna.
+- **Energia wraca.** W turze bez żadnej straty postać odzyskuje trochę energii. Bez tego każda postać prędzej czy później by umarła, bo śmierć jest teraz ostateczna.
+- **Przedmioty.** Postać nosi najwyżej 4 przedmioty: porcje jedzenia i drewno. Zbiera je ruchem „zbierz” z dzikiego jedzenia, z dojrzałego pola i z drzewa. Ścięte drzewo zostawia pniak, który z czasem odrasta. Niesione jedzenie zjada osobnym ruchem.
+- **Sadzenie.** Postać sadzi niesioną porcję jedzenia na pustym polu. Pole dojrzewa po określonej liczbie punktów wzrostu i daje kilka porcji, które zbiera się po jednej. Sadzisz jedną porcję, zbierasz cztery. Specyfikacja wstępna mówiła o nasionach; porcja jedzenia w roli nasiona daje ten sam wybór (zjeść teraz albo zasiać) bez dodatkowego przedmiotu.
+- **Budowanie.** Postać zakłada plac budowy na pustym polu, a potem przynosi na niego drewno i pracuje. Każde drewno i każda tura pracy to jeden ruch „buduj”, więc kilka postaci może budować razem. Schronienie chroni przed zimnem do 4 postaci, które na nim stoją. Magazyn przyjmuje niesione jedzenie i wydaje je po jednej porcji. Jedzenie w magazynie się nie psuje.
+- **Śmierć i narodziny.** Upadek z głodu, pragnienia, zimna albo lawy oznacza śmierć na stałe, tak jak starość. Noworodek rodzi się przy magazynie, gdy w magazynach leży nadwyżka jedzenia ponad zapas na każdego mieszkańca, w schronieniach są wolne miejsca, a od poprzednich narodzin minął ustalony czas. Narodziny kosztują porcje z magazynu. Osada może więc rosnąć, kurczyć się i wymrzeć.
+- **Założyciele** startują blisko siebie, w promieniu kilku pól od losowego miejsca na planszy.
+- **Nagroda.** Liczy ją świat, jak dotąd. Dochodzi premia dla każdej postaci, która przeżyła zimę. Nagrody za samo sadzenie, magazynowanie i budowanie nie ma: ich wartość postać ma odkryć przez opóźniony skutek. Specyfikacja wstępna przewidywała plus za odłożenie jedzenia do magazynu; usunąłem go, bo kłócił się z kryterium „osada magazynuje, choć świat tego nie nagradza”.
+- **Limit życia z etapu 1** (ucięcie epizodu po 2000 turach bez upadku) jest wyłączony, bo przenosiłby postać w losowe miejsce.
 
 ## Mózgi (`brain`)
 
@@ -49,9 +52,10 @@ Nowy moduł ze Spring Bootem, PostgreSQL i Flywayem. `world-core` dalej nie wie 
 
 Same nowe pola i wartości, stare numery bez zmian:
 
-- nowe wartości `Cell` i `Action`,
-- w `Observation`: ekwipunek, pora roku, tura w roku, większy wycinek planszy (rozmiar w osobnym polu),
-- w `StepRequest`: identyfikator osady (jedna osada w etapie 3, wiele od etapu 5).
+- `Cell`: drzewo, pniak, pole zasiane, pole dojrzałe, plac budowy schronienia, plac budowy magazynu, schronienie, magazyn.
+- `Action`: zbierz, zjedz niesione, zasiej, buduj schronienie, buduj magazyn, odłóż do magazynu, weź z magazynu.
+- `Observation`: bok wycinka planszy (3 w etapach 1 i 2, 7 w etapie 3), niesione jedzenie i drewno, pora roku, liczba tur do jej końca oraz to, co leży na polu pod postacią (porcje na dojrzałym polu, jedzenie w magazynie, drewno na placu budowy).
+- `StepRequest`: identyfikator osady (jedna osada w etapie 3, wiele od etapu 5).
 
 ## Parametry startowe
 
@@ -61,15 +65,24 @@ Wartości do strojenia w `config/stage-3.yaml`. Krok 3.6 ustala je tak, żeby ś
 |---|---|
 | Plansza | 64×64 razem ze ścianą |
 | Postacie na starcie / limit | 20 / 50 |
-| Długość pory roku | 1000 tur (rok 4000) |
+| Założyciele | w promieniu 4 pól od losowego miejsca |
+| Udział pól jedzenia / wody / lawy / drzew | 3% / 2% / 3% / 5% |
+| Odrastanie dzikiego jedzenia / drzew | 100 / 300 tur pełnego wzrostu |
+| Długość pory roku | 500 tur (rok 2000) |
+| Wzrost wiosną / latem / jesienią / zimą | 100% / 100% / 50% / 0% |
 | Zimno zimą | −1 energii na turę poza schronieniem |
+| Odzyskiwanie energii | +1 na turę bez strat |
 | Ekwipunek | 4 przedmioty |
-| Dojrzewanie pola | 800 tur ciepłych pór, plon 4 porcje |
+| Dojrzewanie pola | 300 tur pełnego wzrostu, plon 4 porcje |
 | Schronienie | 6 drewna, 30 tur pracy, 4 miejsca |
-| Magazyn | 4 drewna, 20 tur pracy, 40 porcji |
+| Magazyn | 4 drewna, 20 tur pracy, 100 porcji |
+| Narodziny | 10 porcji z magazynu, zapas 5 porcji na mieszkańca, co najmniej 250 tur odstępu |
 | Wycinek planszy w obserwacji | 7×7 |
-| Długość życia | 3 lata (12 000 tur) ± 20% |
+| Długość życia | 3 lata (6000 tur) ± 20% |
+| Premia za przeżytą zimę | +5 |
 | Seed | 42 |
+
+Pora roku jest krótsza niż w specyfikacji wstępnej (500 zamiast 1000 tur), bo zimowy zapas rośnie z długością zimy: przy 1000 turach osada 20 postaci potrzebowałaby kilkuset porcji w magazynach.
 
 ## Kroki
 

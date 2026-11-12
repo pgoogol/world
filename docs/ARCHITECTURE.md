@@ -140,6 +140,12 @@ Wygenerowanego kodu nie commitujemy w żadnym języku.
 51. **Dziennik epizodów.** `--episodes` zapisuje wiersz na każdy epizod życia, narodziny i śmierć ze starości. Z niego `scripts/generations.py` liczy poziom pokoleń i wiek, w którym postać dochodzi do poziomu dorosłych (średnia z 5 ostatnich epizodów).
 52. **Nowy przebieg przejmuje zapisane mózgi w kolejności numerów.** Po pokoleniach zapisane postacie mają wysokie numery, a nowy świat numeruje od zera. Założyciele bez własnego zapisu biorą kolejne zapisane mózgi, więc tryb pokazu startuje z wiedzą ostatnich żyjących.
 53. **PyTorch nie wszedł w etapie 2.** Tablica jednej postaci ma około 2700 sytuacji przy progu 200 000, a mapa przyspiesza naukę. Sieć wchodzi w etapie 3 razem z PPO.
+54. **Ustawienia etapu 3 w osobnych sekcjach.** `seasons`, `economy` i `population` w pliku konfiguracji, a w Javie osobne rekordy. Brak sekcji oznacza wartości, które odtwarzają etapy 1 i 2 (`SeasonConfig.NONE`, `EconomyConfig.NONE`, `PopulationConfig.CLASSIC`). Tak samo `view_radius` (domyślnie 1, czyli 3×3) i `life_limit: 0` (bez ucinania epizodów).
+55. **Wzrost w punktach.** Odrastanie jedzenia, drzew i pól liczy punkty wzrostu: 100 na turę pełnego wzrostu, a pora roku mówi, ile punktów przybywa w turze. Bez pór roku zawsze jest 100, więc jedzenie odrasta dokładnie po `food_regrow_ticks` turach, jak w etapach 1 i 2. Licznik działa tylko wtedy, gdy pole wciąż jest tym, czym było na starcie; budowla postawiona na miejscu dzikiego jedzenia je kasuje.
+56. **Drzewa losowane na końcu.** Generator rozkłada drzewa po jedzeniu, wodzie i lawie z tej samej przetasowanej listy pól, więc plansze etapów 1 i 2 się nie zmieniają.
+57. **Porcja jedzenia służy za nasiono.** Sadzi się niesioną porcję, a dojrzałe pole daje kilka. Ten sam wybór co z nasionami (zjeść teraz albo zasiać), bez trzeciego przedmiotu.
+58. **Bez nagrody za magazynowanie.** Specyfikacja wstępna przewidywała plus za odłożenie jedzenia do magazynu, ale kryterium etapu wymaga, żeby osada magazynowała bez takiej nagrody. Zostaje premia za przeżytą zimę.
+59. **Kontrakt etapu 3.** Nowe wartości `Cell` (6–13) i `Action` (7–13), w `Observation` bok wycinka planszy, ekwipunek, pora roku z liczbą tur do jej końca i to, co leży na polu pod postacią, w `StepRequest` identyfikator osady. Wszystkie akcje etapu 3 działają na polu pod postacią albo na tym, co niesie.
 
 ## Co dochodzi później
 

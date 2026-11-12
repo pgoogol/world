@@ -1,0 +1,87 @@
+# Stage 3 parameters, read by the world (Java) and the brains (Python).
+# Stage 1 and 2 rules still apply; the stage 3 additions are in their own sections.
+seed: 42
+
+world:
+  width: 64                 # board size including the surrounding wall
+  height: 64
+  npcs: 20                  # founders
+  food_share: 0.03          # share of the cells inside the wall
+  water_share: 0.02
+  lava_share: 0.03
+  food_regrow_ticks: 100    # ticks of full growth
+  need_per_tick: 1
+  need_max: 100
+  need_threshold: 80
+  need_energy_loss: 1
+  lava_energy_loss: 25
+  consume_relief: 40
+  energy_max: 100
+  energy_regen: 1           # per tick without any loss; death is final, so energy has to come back
+  life_limit: 0             # 0 = no truncation (it would move the NPC to a random cell)
+  lifespan_ticks: 6000      # three years
+  lifespan_spread: 0.2
+  aging_start_tick: 0
+  view_radius: 3            # the NPC sees a 7x7 square around itself
+
+seasons:
+  season_ticks: 500         # spring, summer, autumn, winter: a year is 2000 ticks
+  growth_percent: [100, 100, 50, 0]  # growth points per tick in each season, out of 100
+  cold_energy_loss: 1       # per winter tick outside a shelter
+  winter_rot: true          # on the first day of winter wild food and unharvested ripe fields are gone
+
+economy:
+  tree_share: 0.05
+  tree_regrow_ticks: 300    # a stump grows back into a tree after this many ticks of full growth
+  inventory_size: 4         # food portions and wood together
+  field_grow_ticks: 300     # a sown field ripens after this many ticks of full growth
+  field_yield: 4            # portions on a ripe field
+  shelter_wood: 6
+  shelter_work: 30
+  shelter_capacity: 4       # NPCs standing on one shelter that it protects from the cold
+  store_wood: 4
+  store_work: 20
+  store_capacity: 100       # food portions
+
+population:
+  death_is_final: true      # a collapse kills for good; stage 1 and 2 respawn the NPC
+  newborn_on_old_age: false # stage 2 replaced every NPC that died of old age; stage 3 needs births
+  founders_radius: 4        # founders start within this many cells of one random place
+  max_npcs: 50
+  birth_food_cost: 10       # portions a birth takes from a store
+  birth_reserve_per_npc: 5  # stores must keep this much per living NPC on top of the cost
+  birth_interval_ticks: 250
+
+rewards:
+  per_tick: 0.1
+  consume: 1.0
+  consume_need_min: 50
+  death: -10.0
+  winter_survived: 5.0      # every NPC alive on the first day of spring
+
+brain:
+  address: localhost:50051
+  kind: scripted            # scripted (hand-written settlement, step 3.6) | random
+  tuning: self
+  gamma: 0.95
+  need_levels: [50, 80]
+  fixed:
+    alpha: 0.1
+    epsilon_start: 1.0
+    epsilon_end: 0.05
+    epsilon_decay_ticks: 200000
+  self_tuning:
+    epsilon_min: 0.05
+    alpha_min: 0.1
+  save_every_ticks: 5000
+  data_dir: data
+  scripted:
+    build: true             # false: the same scenario without shelters, stores and fields
+
+training:
+  ticks: 10000              # five years
+  stats_window: 250
+  out_dir: out
+
+show:
+  ticks_per_second: 20

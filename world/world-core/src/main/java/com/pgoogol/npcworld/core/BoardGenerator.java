@@ -24,6 +24,7 @@ final class BoardGenerator {
         int food = (int) Math.round(inside * config.foodShare());
         int water = (int) Math.round(inside * config.waterShare());
         int lava = (int) Math.round(inside * config.lavaShare());
+        int trees = (int) Math.round(inside * config.economy().treeShare());
 
         for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
             Board board = new Board(config.width(), config.height());
@@ -43,6 +44,10 @@ final class BoardGenerator {
             }
             for (int i = 0; i < lava; i++) {
                 board.set(free.get(next++), CellType.LAVA);
+            }
+            // Stage 3. Trees come last, so the earlier stages draw exactly the same boards as before.
+            for (int i = 0; i < trees; i++) {
+                board.set(free.get(next++), CellType.TREE);
             }
             if (safeCellsAreConnected(board)) {
                 return board;

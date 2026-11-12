@@ -6,5 +6,12 @@ package com.pgoogol.npcworld.core;
  */
 public record NpcSnapshot(
         int id, Position position, int hunger, int thirst, int energy, int age,
-        long totalAge, long lifespan, int generation) {
+        long totalAge, long lifespan, int generation, int carriedFood, int carriedWood) {
+
+    /** Stages 1 and 2: nothing carried. */
+    public NpcSnapshot(
+            int id, Position position, int hunger, int thirst, int energy, int age,
+            long totalAge, long lifespan, int generation) {
+        this(id, position, hunger, thirst, energy, age, totalAge, lifespan, generation, 0, 0);
+    }
 }
