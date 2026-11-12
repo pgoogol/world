@@ -2,6 +2,9 @@
 
 Every NPC keeps its own map, built from what it sees. Neighbours merge their maps, so the
 settlement's knowledge of the board spreads through contacts and outlives single NPCs.
+
+The map gives the NPC one extra skill: walking towards a place it knows. Whether and when to
+use that skill is still learned by Q-learning.
 """
 
 from brain.encoding import need_level
@@ -9,8 +12,12 @@ from brain.proto import brain_pb2
 
 Position = tuple[int, int]
 
-# Direction codes used in the Q-table key: 0..8 = (sign dx + 1) * 3 + (sign dy + 1), so 4 means "here".
-NO_DIRECTION = 9  # the NPC does not need the resource or knows no place with it
+# Action indices as used by the brains (see brain.brains.ACTIONS).
+STAY = 0
+CONSUME = 5
+# (action index, dx, dy): up, down, left, right.
+MOVES = ((1, 0, -1), (2, 0, 1), (3, -1, 0), (4, 1, 0))
+BLOCKING = (brain_pb2.CELL_WALL, brain_pb2.CELL_LAVA)
 
 
 class DiscoveryMap:
@@ -41,20 +48,19 @@ class DiscoveryMap:
             if mine is None or sighting[0] > mine[0]:
                 self.food[position] = sighting
 
-    def directions(self, observation: brain_pb2.Observation, levels: tuple[int, int], tick: int) -> bytes:
-        """Two bytes for the Q-table key: direction to water and to food.
+    def target(self, observation: brain_pb2.Observation, levels: tuple[int, int], tick: int) -> Position | None:
+        """The nearest known place of the resource the NPC needs more right now.
 
-        An NPC thinks about a resource only when it needs it: with a low need the direction is
-        NO_DIRECTION, which keeps the number of situations small.
+        None when both needs are low (the NPC is not looking for anything) or when the NPC
+        knows no place with that resource.
         """
-        x, y = observation.x, observation.y
-        water = NO_DIRECTION
-        if need_level(observation.thirst, levels) > 0:
-            water = _direction_to_nearest(x, y, self.water)
-        food = NO_DIRECTION
-        if need_level(observation.hunger, levels) > 0:
-            food = _direction_to_nearest(x, y, self._food_worth_visiting(tick))
-        return bytes((water, food))
+        thirsty = need_level(observation.thirst, levels) > 0
+        hungry = need_level(observation.hunger, levels) > 0
+        if thirsty and (not hungry or observation.thirst >= observation.hunger):
+            return _nearest(observation.x, observation.y, self.water)
+        if hungry:
+            return _nearest(observation.x, observation.y, self._food_worth_visiting(tick))
+        return None
 
     def _food_worth_visiting(self, tick: int) -> list[Position]:
         return [
@@ -71,17 +77,32 @@ class DiscoveryMap:
         self.food = state["food"]
 
 
-def _direction_to_nearest(x: int, y: int, places) -> int:
+def step_towards(observation: brain_pb2.Observation, target: Position) -> int:
+    """The action that brings the NPC closer to the target: eat or drink once it stands on it.
+
+    The NPC looks where it steps: it never walks into a wall or onto lava it can see. When the
+    direct way is blocked it takes the safe step that leaves it nearest to the target.
+    """
+    x, y = observation.x, observation.y
+    if target == (x, y):
+        return CONSUME
+    best = None
+    for action, dx, dy in MOVES:
+        if observation.surroundings[(dy + 1) * 3 + (dx + 1)] in BLOCKING:
+            continue
+        gap_x, gap_y = target[0] - (x + dx), target[1] - (y + dy)
+        # Steps first, then the straight-line distance: with the way ahead blocked, a step
+        # sideways (which opens a way around) beats a step back.
+        candidate = (abs(gap_x) + abs(gap_y), gap_x * gap_x + gap_y * gap_y, action)
+        if best is None or candidate < best:
+            best = candidate
+    return best[2] if best is not None else STAY
+
+
+def _nearest(x: int, y: int, places) -> Position | None:
     best = None
     for place in places:
         candidate = (abs(place[0] - x) + abs(place[1] - y), place)
         if best is None or candidate < best:
             best = candidate
-    if best is None:
-        return NO_DIRECTION
-    dx, dy = best[1][0] - x, best[1][1] - y
-    return (_sign(dx) + 1) * 3 + (_sign(dy) + 1)
-
-
-def _sign(value: int) -> int:
-    return (value > 0) - (value < 0)
+    return best[1] if best is not None else None

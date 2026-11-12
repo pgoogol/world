@@ -7,7 +7,7 @@ Every brain has the same interface:
 
 import random
 
-from brain.discovery import DiscoveryMap
+from brain.discovery import DiscoveryMap, step_towards
 from brain.encoding import encode
 from brain.proto import brain_pb2
 
@@ -21,9 +21,15 @@ ACTIONS = (
     brain_pb2.ACTION_CONSUME,
 )
 ACTION_COUNT = len(ACTIONS)
+# A brain with a discovery map has one more choice: walk towards the place it is looking for.
+# The world never sees it: the brain turns it into one of the six actions above.
+FOLLOW_MAP = ACTION_COUNT
 
 # A finished step of experience: (state, action, reward, next state or None when the step ended in a collapse).
 Transition = tuple[bytes, int, float, bytes | None]
+
+_TARGET_KNOWN = b"\x01"
+_NO_TARGET = b"\x00"
 
 
 def npc_rng(seed: int, npc_id: int) -> random.Random:
@@ -47,11 +53,12 @@ class RandomBrain:
 class QLearningBrain:
     """Tabular Q-learning with epsilon-greedy action choice.
 
-    The table is a dict: encoded observation -> six action values. Next to it the brain counts
+    The table is a dict: encoded observation -> action values. Next to it the brain counts
     how often it has been in each situation and how often it has tried each action there; the
     tuning variant turns those counters into epsilon and alpha.
 
-    With a discovery map the key also holds the direction to the nearest known water and food.
+    With a discovery map the key also says whether the NPC knows a place with the resource it
+    needs, and in such situations the brain has a seventh choice: walk towards that place.
     """
 
     def __init__(
@@ -69,6 +76,7 @@ class QLearningBrain:
         self._tuning = tuning
         self._learning = learning  # False in show mode: no updates, minimal epsilon
         self._previous: tuple[bytes, int] | None = None
+        self._value_count = ACTION_COUNT + 1 if discovery is not None else ACTION_COUNT
         self.discovery = discovery
         self.q: dict[bytes, list[float]] = {}
         self.state_visits: dict[bytes, int] = {}
@@ -82,9 +90,11 @@ class QLearningBrain:
         self.last_transition = None
 
     def act(self, view, tick: int = 0) -> int:
+        target = None
         if self.discovery is not None:
             self.discovery.see(view.observation, tick)
-        state = self._key(view.observation, tick)
+            target = self.discovery.target(view.observation, self._need_levels, tick)
+        state = self._key(view.observation, target)
 
         self.last_transition = None
         if self._previous is not None:
@@ -92,7 +102,9 @@ class QLearningBrain:
             if self._learning:
                 self._update(self.last_transition, weight=1.0)
 
-        values = self.q.setdefault(state, [0.0] * ACTION_COUNT)
+        values = self.q.setdefault(state, [0.0] * self._value_count)
+        # Walking to a known place is a choice only when there is such a place.
+        choices = self._value_count if target is not None else ACTION_COUNT
         if self._learning:
             visits = self.state_visits.get(state, 0)
             epsilon = self._tuning.epsilon(self.steps, visits)
@@ -100,14 +112,16 @@ class QLearningBrain:
         else:
             epsilon = self._tuning.epsilon_floor
         if self._rng.random() < epsilon:
-            action = self._rng.randrange(ACTION_COUNT)
+            action = self._rng.randrange(choices)
         else:
-            best = max(values)
+            best = max(values[:choices])
             # Ties are broken at random: with a fresh table every value is equal.
-            action = self._rng.choice([index for index, value in enumerate(values) if value == best])
+            action = self._rng.choice([index for index in range(choices) if values[index] == best])
 
         self._previous = (state, action)
         self.steps += 1
+        if action == FOLLOW_MAP:
+            return step_towards(view.observation, target)
         return action
 
     def learn_from(self, transition: Transition, weight: float) -> None:
@@ -124,9 +138,9 @@ class QLearningBrain:
         for elder in elders:
             states.update(elder.pair_tries)
         for state in states:
-            values = [0.0] * ACTION_COUNT
-            tries = [0] * ACTION_COUNT
-            for action in range(ACTION_COUNT):
+            values = [0.0] * self._value_count
+            tries = [0] * self._value_count
+            for action in range(self._value_count):
                 total = 0
                 weighted = 0.0
                 knowers = 0
@@ -150,11 +164,11 @@ class QLearningBrain:
                 if elder.discovery is not None:
                     self.discovery.merge(elder.discovery)
 
-    def _key(self, observation, tick: int) -> bytes:
+    def _key(self, observation, target) -> bytes:
         key = encode(observation, self._need_levels)
         if self.discovery is None:
             return key
-        return key + self.discovery.directions(observation, self._need_levels, tick)
+        return key + (_TARGET_KNOWN if target is not None else _NO_TARGET)
 
     def _finish_transition(self, view, state: bytes, tick: int) -> Transition:
         previous_state, previous_action = self._previous
@@ -165,22 +179,29 @@ class QLearningBrain:
             # The life limit only cuts the episode: bootstrap from the state before the reset.
             if not view.HasField("final_observation"):
                 raise ValueError(f"NPC {view.npc_id}: truncated view without final_observation")
-            return (previous_state, previous_action, view.reward, self._key(view.final_observation, tick))
+            final = view.final_observation
+            target = self.discovery.target(final, self._need_levels, tick) if self.discovery is not None else None
+            return (previous_state, previous_action, view.reward, self._key(final, target))
         return (previous_state, previous_action, view.reward, state)
 
     def _update(self, transition: Transition, weight: float) -> None:
         state, action, reward, next_state = transition
         target = reward if next_state is None else reward + self._gamma * self._best_value(next_state)
 
-        tries = self.pair_tries.setdefault(state, [0] * ACTION_COUNT)
+        tries = self.pair_tries.setdefault(state, [0] * self._value_count)
         tries[action] += 1
         alpha = weight * self._tuning.alpha(tries[action])
-        values = self.q.setdefault(state, [0.0] * ACTION_COUNT)
+        values = self.q.setdefault(state, [0.0] * self._value_count)
         values[action] += alpha * (target - values[action])
 
     def _best_value(self, state: bytes) -> float:
         values = self.q.get(state)
-        return max(values) if values is not None else 0.0
+        if values is None:
+            return 0.0
+        if self.discovery is not None and state[-1:] == _NO_TARGET:
+            # Without a known place the seventh value is never used and must not count.
+            return max(values[:ACTION_COUNT])
+        return max(values)
 
     def export_state(self) -> dict:
         return {

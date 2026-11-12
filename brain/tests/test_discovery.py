@@ -1,7 +1,7 @@
 """The discovery map: building it, merging it and turning it into directions."""
 
-from brain.discovery import NO_DIRECTION, DiscoveryMap
-from helpers import EMPTY, FOOD, LAVA, NEED_LEVELS, WATER, observation
+from brain.discovery import CONSUME, STAY, DiscoveryMap, step_towards
+from helpers import EMPTY, FOOD, LAVA, NEED_LEVELS, WALL, WATER, observation
 
 THIRSTY = 60
 HUNGRY = 60
@@ -71,41 +71,49 @@ def test_merge_prefers_the_more_recent_sighting():
     assert older.food[(3, 3)] == (30, False)
 
 
-def test_direction_points_at_the_nearest_known_water():
+UP, DOWN, LEFT, RIGHT = 1, 2, 3, 4
+
+
+def water_target(seen, x=5, y=5, tick=0):
+    return seen.target(observation(x=x, y=y, thirst=THIRSTY), NEED_LEVELS, tick)
+
+
+def food_target(seen, x=5, y=5, tick=0):
+    return seen.target(observation(x=x, y=y, hunger=HUNGRY), NEED_LEVELS, tick)
+
+
+def test_target_is_the_nearest_known_water():
     seen = discovery()
     seen.water = {(9, 5), (5, 1), (1, 1)}
 
-    # From (5, 5): water at (9, 5) and (5, 1) is 4 steps away, (1, 1) is 8. The tie goes to the smaller position.
-    directions = seen.directions(observation(x=5, y=5, thirst=THIRSTY), NEED_LEVELS, tick=0)
-
-    assert directions[0] == (0 + 1) * 3 + (-1 + 1)   # dx = 0, dy < 0: straight up
+    # From (5, 5): (9, 5) and (5, 1) are 4 steps away, (1, 1) is 8. The tie goes to the smaller position.
+    assert water_target(seen) == (5, 1)
 
 
-def test_direction_codes_cover_all_eight_sides_and_here():
+def test_no_target_without_a_need_or_without_knowledge():
     seen = discovery()
-    codes = {}
-    for dx in (-1, 0, 1):
-        for dy in (-1, 0, 1):
-            seen.water = {(5 + 2 * dx, 5 + 2 * dy)}
-            codes[(dx, dy)] = seen.directions(observation(x=5, y=5, thirst=THIRSTY), NEED_LEVELS, tick=0)[0]
-
-    assert sorted(codes.values()) == list(range(9))
-    assert codes[(0, 0)] == 4
-
-
-def test_no_direction_without_a_need_or_without_knowledge():
-    seen = discovery()
-    assert seen.directions(observation(thirst=THIRSTY, hunger=HUNGRY), NEED_LEVELS, tick=0) == bytes(
-        (NO_DIRECTION, NO_DIRECTION)
-    )
+    assert water_target(seen) is None
+    assert food_target(seen) is None
 
     seen.water = {(1, 1)}
     seen.food[(2, 2)] = (0, True)
-    assert seen.directions(observation(thirst=10, hunger=10), NEED_LEVELS, tick=0) == bytes(
-        (NO_DIRECTION, NO_DIRECTION)
-    )
-    assert seen.directions(observation(thirst=THIRSTY, hunger=10), NEED_LEVELS, tick=0)[1] == NO_DIRECTION
-    assert seen.directions(observation(thirst=THIRSTY, hunger=10), NEED_LEVELS, tick=0)[0] != NO_DIRECTION
+    assert seen.target(observation(thirst=10, hunger=10), NEED_LEVELS, tick=0) is None
+    assert water_target(seen) == (1, 1)
+
+
+def test_target_follows_the_more_pressing_need():
+    seen = discovery()
+    seen.water = {(5, 1)}
+    seen.food[(9, 5)] = (0, True)
+
+    def target(thirst, hunger):
+        return seen.target(observation(x=5, y=5, thirst=thirst, hunger=hunger), NEED_LEVELS, tick=0)
+
+    assert target(thirst=70, hunger=60) == (5, 1)
+    assert target(thirst=60, hunger=70) == (9, 5)
+    assert target(thirst=60, hunger=60) == (5, 1)     # a tie goes to water
+    assert target(thirst=10, hunger=60) == (9, 5)     # a low need does not count
+    assert target(thirst=60, hunger=10) == (5, 1)
 
 
 def test_empty_food_place_is_skipped_until_the_retry_time():
@@ -113,11 +121,42 @@ def test_empty_food_place_is_skipped_until_the_retry_time():
     seen.food[(5, 3)] = (100, False)   # near, seen empty at tick 100
     seen.food[(9, 5)] = (40, True)     # farther, had food
 
-    early = seen.directions(observation(x=5, y=5, hunger=HUNGRY), NEED_LEVELS, tick=120)[1]
-    later = seen.directions(observation(x=5, y=5, hunger=HUNGRY), NEED_LEVELS, tick=150)[1]
+    assert food_target(seen, tick=120) == (9, 5)
+    assert food_target(seen, tick=150) == (5, 3)   # worth another try
 
-    assert early == (1 + 1) * 3 + (0 + 1)    # to the right: the far place
-    assert later == (0 + 1) * 3 + (-1 + 1)   # up: the near place is worth another try
+
+def test_step_goes_straight_towards_the_target():
+    here = observation(x=5, y=5)
+
+    assert step_towards(here, (5, 1)) == UP
+    assert step_towards(here, (5, 9)) == DOWN
+    assert step_towards(here, (1, 5)) == LEFT
+    assert step_towards(here, (9, 5)) == RIGHT
+
+
+def test_step_on_the_target_is_to_consume():
+    assert step_towards(observation(x=5, y=5), (5, 5)) == CONSUME
+
+
+def test_step_never_enters_lava_or_a_wall():
+    lava_above = observation(x=5, y=5, cells=cells(c1=LAVA))
+    wall_above = observation(x=5, y=5, cells=cells(c1=WALL))
+
+    # The way up is blocked; a sideways step keeps the distance smallest among the safe ones.
+    assert step_towards(lava_above, (5, 1)) in (LEFT, RIGHT)
+    assert step_towards(wall_above, (5, 1)) in (LEFT, RIGHT)
+
+
+def test_step_takes_the_free_axis_on_a_diagonal():
+    lava_above = observation(x=5, y=5, cells=cells(c1=LAVA))
+
+    assert step_towards(lava_above, (8, 2)) == RIGHT
+
+
+def test_no_safe_step_means_staying():
+    boxed_in = observation(x=5, y=5, cells=cells(c1=LAVA, c3=WALL, c5=LAVA, c7=WALL))
+
+    assert step_towards(boxed_in, (5, 1)) == STAY
 
 
 def test_export_and_import_keep_the_map():

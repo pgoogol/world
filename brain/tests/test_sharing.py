@@ -4,9 +4,9 @@ import dataclasses
 
 import pytest
 
-from brain.brains import ACTION_COUNT, QLearningBrain
+from brain.brains import ACTION_COUNT, FOLLOW_MAP, QLearningBrain
 from brain.config import SharingConfig, load_config
-from brain.discovery import NO_DIRECTION, DiscoveryMap
+from brain.discovery import DiscoveryMap
 from brain.encoding import encode
 from brain.group import BrainGroup
 from brain.proto import brain_pb2
@@ -269,16 +269,55 @@ def test_maps_stay_private_without_contact_or_with_the_switch_off():
     assert switched_off.brains[1].discovery.water == set()
 
 
-def test_key_gains_directions_only_with_a_map():
-    plain, mapped = brain(), brain(with_map=True)
+def test_key_says_whether_a_place_is_known_only_with_a_map():
+    plain, mapped, clueless = brain(), brain(with_map=True), brain(with_map=True)
     thirsty = observation(x=5, y=5, thirst=60)
     mapped.discovery.water = {(5, 1)}
 
     plain.act(view(thirsty))
     mapped.act(view(thirsty))
+    clueless.act(view(thirsty))
 
     assert list(plain.q) == [key(thirsty)]
-    assert list(mapped.q) == [key(thirsty) + bytes((3, NO_DIRECTION))]
+    assert list(mapped.q) == [key(thirsty) + b"\x01"]
+    assert list(clueless.q) == [key(thirsty) + b"\x00"]
+
+
+def test_brain_with_a_map_has_a_seventh_choice_only_when_a_place_is_known():
+    mapped = brain(with_map=True)
+    thirsty = observation(x=5, y=5, thirst=60)
+    mapped.discovery.water = {(5, 1)}
+    known, unknown = key(thirsty) + b"\x01", key(observation(x=5, y=5)) + b"\x00"
+    mapped.q[known] = [0, 0, 0, 0, 0, 0, 9.0]
+    mapped.q[unknown] = [0, 0, 0, 0, 0, 0, 9.0]
+
+    # Greedy brain (epsilon 0): the seventh value wins where the place is known and turns into a step up.
+    assert [mapped.act(view(thirsty, died=True)) for _ in range(10)] == [1] * 10
+    assert mapped._previous == (known, FOLLOW_MAP)
+
+    # Without a need there is no place to walk to, so the seventh value is ignored.
+    actions = {mapped.act(view(observation(x=5, y=5), died=True)) for _ in range(200)}
+    assert actions == set(range(ACTION_COUNT))
+    assert mapped._previous[1] < FOLLOW_MAP
+
+
+def test_following_the_map_ends_with_consuming_on_the_place():
+    mapped = brain(with_map=True)
+    at_water = observation(x=5, y=5, thirst=60, centre=WATER)
+    mapped.q[key(at_water) + b"\x01"] = [0, 0, 0, 0, 0, 0, 9.0]
+
+    assert mapped.act(view(at_water)) == 5
+
+
+def test_unused_seventh_value_does_not_count_as_the_best_next_value():
+    mapped = brain(with_map=True, alpha=1.0)
+    start, calm = observation(x=5, y=5, hunger=10), observation(x=5, y=6, hunger=11)
+    action = mapped.act(view(start))
+    mapped.q[key(calm) + b"\x00"] = [-1.0, -2.0, -3.0, -1.5, -2.5, -4.0, 0.0]
+
+    mapped.act(view(calm, reward=0.0))
+
+    assert mapped.q[key(start) + b"\x00"][action] == pytest.approx(GAMMA * -1.0)
 
 
 def test_map_survives_saving_and_loading(tmp_path):
@@ -322,4 +361,4 @@ def test_control_settlement_has_no_map_in_the_key(tmp_path):
 
     assert brains.brains[0].discovery is None
     assert all(len(state) == 11 for state in brains.brains[0].q)
-    assert len(brains.brains[0].q) == 1 and ACTION_COUNT == 6
+    assert all(len(values) == ACTION_COUNT for values in brains.brains[0].q.values())

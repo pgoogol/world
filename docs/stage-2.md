@@ -24,7 +24,7 @@ Każdy mechanizm ma przełącznik w konfiguracji. Osada kontrolna ma wyłączone
 
 - **Dziedziczenie.** Noworodek startuje od średniej tablic Q sąsiadów obecnych przy narodzinach, ważonej ich licznikami prób. Liczniki dostaje pomnożone przez współczynnik zaufania, więc wiedzę z drugiej ręki sprawdza sam.
 - **Podglądanie.** Postać uczy się też z ruchów sąsiada: jego przejście (sytuacja, ruch, nagroda, następna sytuacja) aktualizuje jej tablicę ze słabszą wagą.
-- **Mapa odkryć.** Każda postać zapamiętuje, gdzie widziała wodę i jedzenie. Sąsiedzi wymieniają mapy, a noworodek dostaje mapę przy narodzinach. Do stanu Q dochodzi kierunek do najbliższej znanej wody (gdy postać chce pić) i do najbliższego znanego jedzenia (gdy jest głodna).
+- **Mapa odkryć.** Każda postać zapamiętuje, gdzie widziała wodę i jedzenie. Sąsiedzi wymieniają mapy, a noworodek dostaje mapę przy narodzinach. Mapa daje postaci siódmy ruch: „idź do znanego miejsca”, czyli krok w stronę najbliższego miejsca z zasobem, którego postać potrzebuje bardziej, z omijaniem widocznej lawy i ścian. Na miejscu ten ruch oznacza jedzenie albo picie. Stan Q dostaje jedną informację: czy postać zna takie miejsce. Kiedy używać nowego ruchu, postać uczy się sama.
 - Mózg postaci zmarłej ze starości znika razem z nią.
 
 ## Kontrakt
@@ -69,9 +69,9 @@ Wartości do strojenia w `config/stage-2.yaml`. Parametry etapu 1, których tabe
 
   *Gotowe, gdy:* testy pokazują zmianę tablicy obserwatora, a wyłączony przełącznik jej nie rusza.
 
-- [x] **2.5 Mapa odkryć.** Osobista mapa, wymiana przy kontakcie, kierunki w stanie Q, mapa w zapisie na dysk.
+- [x] **2.5 Mapa odkryć.** Osobista mapa, wymiana przy kontakcie, ruch „idź do znanego miejsca”, mapa w zapisie na dysk.
 
-  *Gotowe, gdy:* testy pokrywają budowę mapy, scalanie i wyznaczanie kierunku.
+  *Gotowe, gdy:* testy pokrywają budowę mapy, scalanie, wybór celu i krok w jego stronę.
 
 - [ ] **2.6 Pomiar.** Przebieg pokoleń dla osady z wymianą wiedzy, osady kontrolnej i każdego mechanizmu osobno. Skrypt liczy poziom pokoleń i wiek, w którym noworodki dochodzą do poziomu dorosłych.
 
