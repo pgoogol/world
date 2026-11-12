@@ -7,12 +7,13 @@ Symulacja świata NPC: postacie startują bez żadnej wiedzy, uczą się metodą
 Przeczytaj je przed pierwszą zmianą w sesji:
 
 - `ROADMAP.md`: wszystkie etapy, status i kryteria ukończenia.
-- `docs/stage-1.md`, `docs/stage-2.md`: specyfikacje ukończonych etapów, parametry, kroki i wyniki odbioru. Specyfikacja kolejnego etapu powstaje jako `docs/stage-3.md`.
+- `docs/stage-1.md`, `docs/stage-2.md`: specyfikacje ukończonych etapów, parametry, kroki i wyniki odbioru.
+- `docs/stage-3.md`: plan bieżącego etapu z krokami. `docs/stage-4.md`, `docs/stage-5.md`, `docs/stage-6.md`: plany wstępne kolejnych etapów, do doprecyzowania po odbiorze poprzedniego.
 - `docs/ARCHITECTURE.md`: technologie, kontrakt gRPC i decyzje z uzasadnieniem.
 
 ## Jak pracujemy
 
-- Bieżący krok to pierwszy nieodhaczony krok w specyfikacji bieżącego etapu (etapy 1 i 2 są ukończone). Rób jeden krok naraz i kończ go dopiero, gdy spełnia warunek „Gotowe, gdy”.
+- Bieżący krok to pierwszy nieodhaczony krok w specyfikacji bieżącego etapu (etapy 1 i 2 są ukończone, bieżący to etap 3). Rób jeden krok naraz i kończ go dopiero, gdy spełnia warunek „Gotowe, gdy”.
 - Nie dokładaj niczego z późniejszych etapów (PyTorch, baza danych, Spring Boot, model językowy, Unity), dopóki `ROADMAP.md` ich nie odblokuje.
 - Gdy specyfikacja czegoś nie rozstrzyga, zajrzyj do sekcji „Do decyzji” w specyfikacji etapu. Przyjmij wartość domyślną i opisz wybór w podsumowaniu kroku.
 - Po każdym kroku uruchom testy obu części i odhacz krok. Nową decyzję albo zmianę kontraktu dopisz do `docs/ARCHITECTURE.md`.

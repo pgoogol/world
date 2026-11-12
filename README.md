@@ -14,5 +14,6 @@ Symulacja świata NPC. Grupa postaci startuje bez żadnej wiedzy i uczy się met
 
 - [ROADMAP.md](ROADMAP.md): etapy i kryteria ukończenia
 - [docs/stage-1.md](docs/stage-1.md), [docs/stage-2.md](docs/stage-2.md): specyfikacje etapów, kroki i wyniki
+- [docs/stage-3.md](docs/stage-3.md): plan etapu 3; [docs/stage-4.md](docs/stage-4.md), [docs/stage-5.md](docs/stage-5.md), [docs/stage-6.md](docs/stage-6.md): plany wstępne kolejnych etapów
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): technologie, kontrakt gRPC, decyzje
 - [CLAUDE.md](CLAUDE.md): instrukcje dla Claude Code

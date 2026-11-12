@@ -1,6 +1,6 @@
 # Roadmapa
 
-Każdy etap kończy się czymś, co widać w oknie albo na wykresie. Etap 1 ma pełną specyfikację w [docs/stage-1.md](docs/stage-1.md). Dalsze etapy doprecyzujemy po wynikach poprzednich, dlatego ich opis jest ogólny.
+Każdy etap kończy się czymś, co widać w oknie albo na wykresie. Etapy 1 i 2 są ukończone, a ich specyfikacje zawierają wyniki odbioru. Etap 3 ma plan z krokami w [docs/stage-3.md](docs/stage-3.md). Etapy 4–6 mają plany wstępne, które doprecyzujemy po wynikach poprzednich.
 
 | Etap | Nazwa | Skala | Status |
 |---|---|---|---|
@@ -80,6 +80,8 @@ Postacie zmieniają świat, żeby przetrwać trudniejsze warunki.
 - **Mózgi:** nagroda przychodzi z opóźnieniem (sadzisz wiosną, jesz jesienią), więc wchodzi PyTorch z PPO i akcje złożone typu „idź po drewno”.
 - **Gotowe, gdy:** osada przeżywa zimę dzięki polom i zapasom, a jej wersja bez budowania wymiera.
 
+Plan z krokami: [docs/stage-3.md](docs/stage-3.md). Najważniejsze ustalenia planu: śmierć staje się ostateczna, osada ma jedną sieć zamiast tablicy na postać, a przed uczeniem osada ze scenariusza napisanego ręcznie dowodzi, że zimę da się przeżyć.
+
 ## Etap 4: Przepisywanie reguł
 
 Osada sama poprawia swoje zasady i zostawia tylko te, które działają. Tu wraca pomysł samonadpisującego się algorytmu.
@@ -88,6 +90,8 @@ Osada sama poprawia swoje zasady i zostawia tylko te, które działają. Tu wrac
 - **Propozycje:** najpierw losowe mutacje, potem model językowy z LM Studio, który czyta kronikę osady i uzasadnia zmianę. Lokalny model odpowiada wolno, więc proponuje raz na sezon.
 - **Sędzia w Javie:** świat kopiuje bieżący stan, puszcza starą i nową regułę przez kilka sezonów i zostawia lepszą. Reguły nie mają dostępu do fizyki świata ani punktacji.
 - **Gotowe, gdy:** osada na poprawionych regułach radzi sobie lepiej niż na startowych, a próba zmiany punktacji kończy się odrzuceniem.
+
+Plan wstępny: [docs/stage-4.md](docs/stage-4.md).
 
 ## Etap 5: Relacje między osadami
 
@@ -98,6 +102,8 @@ Kilka osad z własną kulturą spotyka się, handluje i buduje zaufanie.
 - **Widok:** Unity 6 jako widok 3D, podpięty do tego samego świata.
 - **Gotowe, gdy:** osady same handlują i się specjalizują, a zaufanie rośnie po dotrzymanych umowach i spada po zerwanych.
 
+Plan wstępny: [docs/stage-5.md](docs/stage-5.md).
+
 ## Etap 6: Rywalizacja
 
 Osady walczą o kurczące się zasoby i teren, zawierają sojusze i je zrywają.
@@ -106,6 +112,21 @@ Osady walczą o kurczące się zasoby i teren, zawierają sojusze i je zrywają.
 - **Mózgi:** osady trenują przeciwko sobie i starszym wersjom rywali (self-play z ligą), żeby nie krążyły w kółko między tymi samymi strategiami. Sojusze i pokój negocjują przywódcy.
 - **Obliczenia:** tu trening na CPU zwolni. Wtedy zmniejszamy sieci albo wynajmujemy GPU w chmurze na czas treningu.
 - **Gotowe, gdy:** sojusze i konflikty powstają bez zaprogramowanych scenariuszy.
+
+Plan wstępny: [docs/stage-6.md](docs/stage-6.md).
+
+## Co łączy pozostałe etapy
+
+Plany etapów 3–6 opierają się na tym, co zmierzyliśmy w etapach 1 i 2:
+
+- **Umiejętności zamiast cech stanu.** Postać dostaje gotowe umiejętności złożone, a uczenie wybiera, której użyć. Sam kierunek do wody w stanie Q nie zadziałał, gotowy ruch „idź do znanego miejsca” zadziałał od razu.
+- **Najpierw dowód, że się da.** Zanim cokolwiek uczymy, scenariusz napisany ręcznie pokazuje, że kryterium etapu jest osiągalne w tym świecie. Ten sam scenariusz stroi parametry.
+- **Pomiar tempa przed uczeniem.** Każdy etap ma krok, który mierzy tury na sekundę, zanim zaplanujemy długość przebiegów.
+- **Osada kontrolna w każdym odbiorze.** Efekt liczymy względem tej samej osady bez badanego mechanizmu.
+- **Zgodność wstecz.** Każdy etap kończy się sprawdzeniem, że wcześniejsze dają wyniki identyczne ze swoimi odbiorami.
+- **Negatywny wynik też jest wynikiem.** Gdy coś nie działa, zapisujemy to z liczbami i zmieniamy podejście, zamiast stroić parametry po cichu.
+
+Największe ryzyko całej reszty siedzi w etapie 3: uczenie z opóźnioną nagrodą. Etapy 4–6 budują na osadzie, która umie przeżyć zimę, więc ich plany zależą od tego, jak wyjdzie etap 3.
 
 ## Dalej
 
