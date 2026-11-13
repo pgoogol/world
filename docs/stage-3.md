@@ -86,7 +86,7 @@ Pora roku jest krótsza niż w specyfikacji wstępnej (500 zamiast 1000 tur), bo
 
 ## Kroki
 
-- [ ] **3.1 Specyfikacja i kontrakt.** Doprecyzowanie tego dokumentu, `config/stage-3.yaml`, nowe pola i wartości w `proto/brain.proto`, wartości domyślne dla plików etapów 1 i 2.
+- [x] **3.1 Specyfikacja i kontrakt.** Doprecyzowanie tego dokumentu, `config/stage-3.yaml`, nowe pola i wartości w `proto/brain.proto`, wartości domyślne dla plików etapów 1 i 2.
 
   *Gotowe, gdy:* build i testy przechodzą, a etapy 1 i 2 dają pliki identyczne ze swoimi odbiorami.
 
