@@ -1,10 +1,13 @@
 package com.pgoogol.npcworld.core;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.Set;
 
 /**
  * The referee: owns the board, the NPCs, the clock and the rewards.
@@ -78,6 +81,8 @@ public final class World {
     /** Applies one action per NPC and advances the clock by one tick. */
     public void step(Map<Integer, Action> actions) {
         boolean ageing = config.agingEnabled() && tick >= config.agingStartTick();
+        SeasonConfig seasons = config.seasons();
+        Season season = seasons.seasonAt(tick);
         double[] consumeRewards = new double[npcs.size()];
         for (int i = 0; i < npcs.size(); i++) {
             Npc npc = npcs.get(i);
@@ -86,8 +91,13 @@ public final class World {
                 throw new IllegalArgumentException("No action for NPC " + npc.id + " at tick " + tick);
             }
             consumeRewards[i] = act(npc, action);
+        }
+
+        // Everyone has moved: now it is clear who stands in a shelter.
+        Set<Npc> cold = season == Season.WINTER ? outInTheCold() : Set.of();
+        for (Npc npc : npcs) {
             growNeeds(npc);
-            drainEnergy(npc);
+            drainEnergy(npc, cold.contains(npc));
             npc.age++;
             if (ageing || !config.agingEnabled()) {
                 npc.totalAge++;
@@ -95,10 +105,21 @@ public final class World {
         }
 
         tick++;
-        board.grow(config.seasons().growthAt(tick - 1), config.economy().fieldYield());
+        board.grow(seasons.growthAt(tick - 1), config.economy().fieldYield());
+        Season next = seasons.seasonAt(tick);
+        boolean seasonChanged = next != season;
+        if (seasonChanged && next == Season.WINTER && seasons.winterRot()) {
+            board.winterRot(config.foodRegrowTicks());
+        }
+        double springBonus = seasonChanged && next == Season.SPRING ? config.rewards().winterSurvived() : 0;
 
         for (int i = 0; i < npcs.size(); i++) {
-            settle(npcs.get(i), consumeRewards[i]);
+            settle(npcs.get(i), consumeRewards[i] + springBonus);
+        }
+
+        if (seasonChanged) {
+            SeasonChanged event = new SeasonChanged(tick, next, tick / (4L * seasons.seasonTicks()));
+            listeners.forEach(listener -> listener.onSeasonChanged(event));
         }
 
         if (config.agingEnabled()) {
@@ -161,8 +182,25 @@ public final class World {
         npc.thirst = Math.min(config.needMax(), npc.thirst + config.needPerTick());
     }
 
-    private void drainEnergy(Npc npc) {
+    /** In winter: the NPCs not protected by a shelter. A shelter protects the first NPCs on it, by slot. */
+    private Set<Npc> outInTheCold() {
+        Set<Npc> cold = new HashSet<>();
+        Map<Position, Integer> places = new HashMap<>();
+        for (Npc npc : npcs) {
+            boolean protectedHere = board.get(npc.position) == CellType.SHELTER
+                    && places.merge(npc.position, 1, Integer::sum) <= config.economy().shelterCapacity();
+            if (!protectedHere) {
+                cold.add(npc);
+            }
+        }
+        return cold;
+    }
+
+    private void drainEnergy(Npc npc, boolean cold) {
         int loss = 0;
+        if (cold) {
+            loss += config.seasons().coldEnergyLoss();
+        }
         if (npc.hunger >= config.needThreshold()) {
             loss += config.needEnergyLoss();
         }
@@ -269,7 +307,9 @@ public final class World {
                 surroundings.add(board.contains(x, y) ? board.get(x, y) : CellType.WALL);
             }
         }
-        return new Observation(surroundings, npc.hunger, npc.thirst, npc.energy, npc.position);
+        Season season = config.seasons().seasonAt(tick);
+        return new Observation(surroundings, npc.hunger, npc.thirst, npc.energy, npc.position, npc.food, npc.wood,
+                season == null ? 0 : season.ordinal() + 1, config.seasons().ticksLeftAt(tick), board.amount(npc.position));
     }
 
     /** Ids of the other NPCs standing in the 3x3 around the NPC, in slot order. */

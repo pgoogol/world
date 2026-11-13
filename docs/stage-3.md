@@ -90,7 +90,7 @@ Pora roku jest krótsza niż w specyfikacji wstępnej (500 zamiast 1000 tur), bo
 
   *Gotowe, gdy:* build i testy przechodzą, a etapy 1 i 2 dają pliki identyczne ze swoimi odbiorami.
 
-- [ ] **3.2 Pory roku i zimno.** Zegar roku, odrastanie zależne od pory, utrata energii z zimna.
+- [x] **3.2 Pory roku i zimno.** Zegar roku, odrastanie zależne od pory, utrata energii z zimna.
 
   *Gotowe, gdy:* każda zasada ma test, a rok przebiega powtarzalnie na tym samym seedzie.
 

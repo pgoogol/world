@@ -10,4 +10,7 @@ public interface WorldListener {
 
     default void onNpcBorn(NpcBorn event) {
     }
+
+    default void onSeasonChanged(SeasonChanged event) {
+    }
 }
