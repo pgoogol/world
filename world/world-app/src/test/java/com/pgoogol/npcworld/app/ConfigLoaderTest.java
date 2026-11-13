@@ -75,7 +75,7 @@ class ConfigLoaderTest {
         assertThat(world.lifeLimitEnabled()).isFalse();
         assertThat(world.seasons()).isEqualTo(new SeasonConfig(500, List.of(100, 100, 50, 0), 1, true));
         assertThat(world.economy()).isEqualTo(new EconomyConfig(0.05, 300, 4, 300, 4, 6, 30, 4, 4, 20, 100));
-        assertThat(world.population()).isEqualTo(new PopulationConfig(true, false, 4, 50, 10, 5, 250));
+        assertThat(world.population()).isEqualTo(new PopulationConfig(true, false, 4, 50, 10, 5, 200));
         assertThat(world.rewards().winterSurvived()).isEqualTo(5.0);
     }
 
