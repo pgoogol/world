@@ -168,7 +168,22 @@ public final class World {
                 plant(npc);
                 yield 0;
             }
-            case BUILD_SHELTER, BUILD_STORE, DEPOSIT, WITHDRAW -> 0;
+            case BUILD_SHELTER -> {
+                build(npc, CellType.SITE_SHELTER, CellType.SHELTER);
+                yield 0;
+            }
+            case BUILD_STORE -> {
+                build(npc, CellType.SITE_STORE, CellType.STORE);
+                yield 0;
+            }
+            case DEPOSIT -> {
+                deposit(npc);
+                yield 0;
+            }
+            case WITHDRAW -> {
+                withdraw(npc);
+                yield 0;
+            }
         };
     }
 
@@ -239,6 +254,69 @@ public final class World {
             default -> {
             }
         }
+    }
+
+    /**
+     * One step of building: on an empty cell it starts a site, on a site of the same kind it brings one
+     * wood or, once the site has all its wood, adds one tick of work. The last tick of work finishes it.
+     */
+    private void build(Npc npc, CellType site, CellType building) {
+        EconomyConfig economy = config.economy();
+        if (economy.inventorySize() == 0) {
+            return;
+        }
+        CellType cell = board.get(npc.position);
+        if (cell == CellType.EMPTY) {
+            board.replace(npc.position, site);
+            board.setAmount(npc.position, 0);
+            board.setWork(npc.position, 0);
+            return;
+        }
+        if (cell != site) {
+            return;
+        }
+        boolean shelter = building == CellType.SHELTER;
+        int woodNeeded = shelter ? economy.shelterWood() : economy.storeWood();
+        int workNeeded = shelter ? economy.shelterWork() : economy.storeWork();
+        int wood = board.amount(npc.position);
+        if (wood < woodNeeded) {
+            if (npc.wood > 0) {
+                npc.wood--;
+                board.setAmount(npc.position, wood + 1);
+            }
+            return;
+        }
+        int work = board.work(npc.position) + 1;
+        board.setWork(npc.position, work);
+        if (work >= workNeeded) {
+            board.replace(npc.position, building);
+            board.setAmount(npc.position, 0);
+            board.setWork(npc.position, 0);
+            BuildingCompleted event = new BuildingCompleted(tick + 1, npc.id, npc.position, building);
+            listeners.forEach(listener -> listener.onBuildingCompleted(event));
+        }
+    }
+
+    /** Puts all carried food into the store under the NPC, as much as fits. */
+    private void deposit(Npc npc) {
+        if (board.get(npc.position) != CellType.STORE) {
+            return;
+        }
+        int stored = board.amount(npc.position);
+        int moved = Math.min(npc.food, config.economy().storeCapacity() - stored);
+        npc.food -= moved;
+        board.setAmount(npc.position, stored + moved);
+    }
+
+    /** Takes one portion from the store under the NPC, if there is one and the NPC has room. */
+    private void withdraw(Npc npc) {
+        int stored = board.amount(npc.position);
+        if (board.get(npc.position) != CellType.STORE || stored == 0
+                || npc.food + npc.wood >= config.economy().inventorySize()) {
+            return;
+        }
+        board.setAmount(npc.position, stored - 1);
+        npc.food++;
     }
 
     /** Sows one carried portion on an empty cell. Wild food that was about to grow back there is gone. */

@@ -102,7 +102,7 @@ Pora roku jest krótsza niż w specyfikacji wstępnej (500 zamiast 1000 tur), bo
 
   *Gotowe, gdy:* testy pokrywają cały cykl pola, także zasiew tuż przed zimą.
 
-- [ ] **3.5 Budowanie i magazyn.** Schronienie, magazyn, praca rozłożona na tury i na kilka postaci.
+- [x] **3.5 Budowanie i magazyn.** Schronienie, magazyn, praca rozłożona na tury i na kilka postaci.
 
   *Gotowe, gdy:* testy sprawdzają koszt, czas budowy, pojemność i ochronę przed zimnem.
 

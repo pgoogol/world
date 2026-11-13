@@ -19,4 +19,7 @@ public interface WorldListener {
 
     default void onFieldHarvested(FieldHarvested event) {
     }
+
+    default void onBuildingCompleted(BuildingCompleted event) {
+    }
 }
