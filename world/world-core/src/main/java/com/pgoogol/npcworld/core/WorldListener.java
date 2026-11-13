@@ -13,4 +13,10 @@ public interface WorldListener {
 
     default void onSeasonChanged(SeasonChanged event) {
     }
+
+    default void onFieldSown(FieldSown event) {
+    }
+
+    default void onFieldHarvested(FieldHarvested event) {
+    }
 }

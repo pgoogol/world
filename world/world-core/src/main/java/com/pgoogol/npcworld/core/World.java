@@ -164,7 +164,11 @@ public final class World {
                 yield 0;
             }
             case EAT_CARRIED -> eatCarried(npc);
-            case PLANT, BUILD_SHELTER, BUILD_STORE, DEPOSIT, WITHDRAW -> 0;
+            case PLANT -> {
+                plant(npc);
+                yield 0;
+            }
+            case BUILD_SHELTER, BUILD_STORE, DEPOSIT, WITHDRAW -> 0;
         };
     }
 
@@ -207,7 +211,7 @@ public final class World {
         return eat(npc);
     }
 
-    /** Picks up one item from the NPC's own cell: food from wild food, wood from a tree. */
+    /** Picks up one item from the NPC's own cell: food from wild food or a ripe field, wood from a tree. */
     private void gather(Npc npc) {
         EconomyConfig economy = config.economy();
         if (npc.food + npc.wood >= economy.inventorySize()) {
@@ -222,9 +226,30 @@ public final class World {
                 npc.wood++;
                 board.startGrowth(npc.position, CellType.STUMP, CellType.TREE, economy.treeRegrowTicks());
             }
+            case FIELD_RIPE -> {
+                npc.food++;
+                int left = board.amount(npc.position) - 1;
+                board.setAmount(npc.position, left);
+                if (left == 0) {
+                    board.replace(npc.position, CellType.EMPTY);
+                    FieldHarvested event = new FieldHarvested(tick + 1, npc.id, npc.position);
+                    listeners.forEach(listener -> listener.onFieldHarvested(event));
+                }
+            }
             default -> {
             }
         }
+    }
+
+    /** Sows one carried portion on an empty cell. Wild food that was about to grow back there is gone. */
+    private void plant(Npc npc) {
+        if (npc.food == 0 || board.get(npc.position) != CellType.EMPTY) {
+            return;
+        }
+        npc.food--;
+        board.startGrowth(npc.position, CellType.FIELD_SOWN, CellType.FIELD_RIPE, config.economy().fieldGrowTicks());
+        FieldSown event = new FieldSown(tick + 1, npc.id, npc.position);
+        listeners.forEach(listener -> listener.onFieldSown(event));
     }
 
     private void growNeeds(Npc npc) {

@@ -98,7 +98,7 @@ Pora roku jest krótsza niż w specyfikacji wstępnej (500 zamiast 1000 tur), bo
 
   *Gotowe, gdy:* każda zasada ma test, w tym limit ekwipunku i to, że przedmioty nie znikają ani się nie mnożą.
 
-- [ ] **3.4 Sadzenie i pola.** Nasiona, zasiew, dojrzewanie, zbiór.
+- [x] **3.4 Sadzenie i pola.** Nasiona, zasiew, dojrzewanie, zbiór.
 
   *Gotowe, gdy:* testy pokrywają cały cykl pola, także zasiew tuż przed zimą.
 
