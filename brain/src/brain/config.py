@@ -49,6 +49,7 @@ class BrainConfig:
     save_every_ticks: int
     data_dir: str
     sharing: SharingConfig = SharingConfig()
+    scenario: "ScenarioConfig | None" = None   # stage 3: the hand-written settlement
 
 
 def load_config(path: Path = DEFAULT_CONFIG) -> BrainConfig:
@@ -57,6 +58,20 @@ def load_config(path: Path = DEFAULT_CONFIG) -> BrainConfig:
     brain = root["brain"]
     low, high = brain["need_levels"]
     sharing = brain.get("sharing", {})
+    scenario = None
+    if "scripted" in brain:
+        from brain.scripted import ScenarioConfig
+
+        economy = root["economy"]
+        scenario = ScenarioConfig(
+            build=bool(brain["scripted"]["build"]),
+            season_ticks=int(root["seasons"]["season_ticks"]),
+            consume_relief=int(root["world"]["consume_relief"]),
+            shelter_capacity=int(economy["shelter_capacity"]),
+            store_capacity=int(economy["store_capacity"]),
+            shelter_wood=int(economy["shelter_wood"]),
+            store_wood=int(economy["store_wood"]),
+        )
     return BrainConfig(
         seed=int(root["seed"]),
         address=brain["address"],
@@ -84,4 +99,5 @@ def load_config(path: Path = DEFAULT_CONFIG) -> BrainConfig:
             map=bool(sharing.get("map", False)),
             map_food_retry_ticks=int(sharing.get("map_food_retry_ticks", 50)),
         ),
+        scenario=scenario,
     )

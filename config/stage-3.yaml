@@ -6,10 +6,10 @@ world:
   width: 64                 # board size including the surrounding wall
   height: 64
   npcs: 20                  # founders
-  food_share: 0.03          # share of the cells inside the wall
+  food_share: 0.06          # share of the cells inside the wall
   water_share: 0.02
   lava_share: 0.03
-  food_regrow_ticks: 100    # ticks of full growth
+  food_regrow_ticks: 60     # ticks of full growth
   need_per_tick: 1
   need_max: 100
   need_threshold: 80
@@ -50,7 +50,7 @@ population:
   max_npcs: 50
   birth_food_cost: 10       # portions a birth takes from a store
   birth_reserve_per_npc: 5  # stores must keep this much per living NPC on top of the cost
-  birth_interval_ticks: 250
+  birth_interval_ticks: 200
 
 rewards:
   per_tick: 0.1

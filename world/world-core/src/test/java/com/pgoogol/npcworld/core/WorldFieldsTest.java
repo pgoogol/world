@@ -78,6 +78,22 @@ class WorldFieldsTest {
     }
 
     @Test
+    void consumeEatsOnePortionStraightFromARipeField() {
+        World world = world(board -> {
+            board.replace(CENTRE, CellType.FIELD_RIPE);
+            board.setAmount(CENTRE, 1);
+        });
+        world.npc(0).hunger = 60;
+        world.npc(0).wood = 4;
+
+        step(world, Action.CONSUME);
+
+        assertThat(world.npc(0).hunger).isEqualTo(21);
+        assertThat(world.npc(0).food).isZero();
+        assertThat(cell(world)).isEqualTo(CellType.EMPTY);
+    }
+
+    @Test
     void harvestStopsWhenTheInventoryIsFull() {
         World world = world(board -> {
             board.replace(CENTRE, CellType.FIELD_RIPE);

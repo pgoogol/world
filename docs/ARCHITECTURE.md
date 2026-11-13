@@ -146,6 +146,13 @@ Wygenerowanego kodu nie commitujemy w żadnym języku.
 57. **Porcja jedzenia służy za nasiono.** Sadzi się niesioną porcję, a dojrzałe pole daje kilka. Ten sam wybór co z nasionami (zjeść teraz albo zasiać), bez trzeciego przedmiotu.
 58. **Bez nagrody za magazynowanie.** Specyfikacja wstępna przewidywała plus za odłożenie jedzenia do magazynu, ale kryterium etapu wymaga, żeby osada magazynowała bez takiej nagrody. Zostaje premia za przeżytą zimę.
 59. **Kontrakt etapu 3.** Nowe wartości `Cell` (6–13) i `Action` (7–13), w `Observation` bok wycinka planszy, ekwipunek, pora roku z liczbą tur do jej końca i to, co leży na polu pod postacią, w `StepRequest` identyfikator osady. Wszystkie akcje etapu 3 działają na polu pod postacią albo na tym, co niesie.
+60. **Pory roku przed rozliczeniem tury.** Najpierw ruchy wszystkich postaci, potem zimno (wtedy wiadomo, kto stoi w schronieniu), potrzeby i energia, zegar, wzrost, marnienie pierwszego dnia zimy, a na końcu nagroda z premią za przeżytą zimę. Schronienie chroni pierwsze postacie na nim według kolejności na liście.
+61. **Zdarzenia z ruchów niosą turę, od której świat pokazuje skutek.** `FieldSown`, `FieldHarvested` i `BuildingCompleted` dostają numer tury po ruchu, tak jak `LifeEnded`.
+62. **Ostateczna śmierć z ostatnim widokiem.** Postać, która zmarła na stałe, trafia jeszcze raz do zapytania z `died` i karą, a jej ruch świat pomija. Jej numer przychodzi w `retired_npc_ids` w następnym zapytaniu, więc mózg dostaje karę, zanim zapomni postać. Starość zabiera postać od razu, bez kary, jak w etapie 2.
+63. **Narodziny jako zasada świata, nie decyzja mózgu.** Noworodek pojawia się przy najpełniejszym magazynie, gdy magazyny mają koszt narodzin ponad zapas na każdego mieszkańca, schronienia mają wolne miejsce, żyją co najmniej dwie postacie i minął odstęp od poprzednich narodzin. Rodzic to losowa żyjąca postać.
+64. **Scenariusz w etapie 3 widzi to, co cała osada.** Ręcznie napisana osada łączy obserwacje wszystkich postaci w jedną pamięć i planuje za grupę. To dowód, że świat da się przeżyć, a nie wzór dla uczenia; sieć w kroku 3.9 dostaje wiedzę osady w podobny sposób, przez jedną sieć na osadę.
+65. **Scenariusz zna zasady świata.** Parametry potrzebne do planowania (długość pory roku, pojemność schronienia i magazynu, koszt budowli) czyta z tego samego pliku konfiguracji co świat. Uczący się mózg tych liczb nie dostanie.
+66. **Statystyki osady.** `--settlement` w trybie treningu zapisuje na każde okno populację, narodziny, zgony, zapasy i budowle. Przebieg kończy się wcześniej, gdy osada wymrze. `scripts/winters.py` liczy z tego przeżycie zim.
 
 ## Co dochodzi później
 

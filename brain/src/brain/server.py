@@ -15,6 +15,7 @@ import grpc
 from brain.brains import QLearningBrain, RandomBrain, npc_rng
 from brain.config import BRAIN_DIR, DEFAULT_CONFIG, BrainConfig, load_config
 from brain.discovery import DiscoveryMap
+from brain.scripted import ScriptedSettlement
 from brain.group import BrainGroup
 from brain.proto import brain_pb2_grpc
 from brain.storage import load_brains
@@ -47,6 +48,10 @@ def build_group(config: BrainConfig, mode: str = "train", data_dir: Path | None 
     """`mode="show"` loads what was learned and neither learns nor saves. `fresh` ignores saved tables."""
     if config.kind == "random":
         return BrainGroup(lambda npc_id: RandomBrain(npc_rng(config.seed, npc_id)))
+    if config.kind == "scripted":
+        if config.scenario is None:
+            raise ValueError("kind 'scripted' needs a brain.scripted section in the config")
+        return ScriptedSettlement(config.scenario)
     if config.kind != "qlearning":
         raise ValueError(f"Unknown brain kind: {config.kind!r}")
 
@@ -89,7 +94,7 @@ def start_server(group: BrainGroup, address: str) -> tuple[grpc.Server, int]:
 def main() -> None:
     parser = argparse.ArgumentParser(description="NPC brains server")
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
-    parser.add_argument("--kind", choices=["random", "qlearning"], help="overrides brain.kind from the config")
+    parser.add_argument("--kind", choices=["random", "qlearning", "scripted"], help="overrides brain.kind from the config")
     parser.add_argument("--tuning", choices=["self", "fixed"], help="overrides brain.tuning from the config")
     parser.add_argument("--mode", choices=["train", "show"], default="train",
                         help="show: load saved tables, minimal epsilon, no learning and no saving")

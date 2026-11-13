@@ -95,6 +95,14 @@ uv run python scripts/train.py --variant self --config ../config/stage-2.yaml --
 uv run python scripts/generations.py --baseline s2-random --runs s2-all s2-none
 ```
 
+Etap 3, osada ze scenariusza, w katalogu `brain/`. `--settlement` zapisuje `out/<nazwa>-settlement.csv`, a `winters.py` liczy z niego przeżycie zim:
+
+```
+uv run python scripts/train.py --variant scripted --config ../config/stage-3.yaml --name s3-scripted --settlement
+uv run python scripts/train.py --variant scripted-nobuild --config ../config/stage-3.yaml --name s3-scripted-nobuild --settlement
+uv run python scripts/winters.py --runs s3-scripted s3-scripted-nobuild
+```
+
 Tryb pokazu etapu 2: serwer w katalogu `brain/`, okno w katalogu głównym repo. W `config/stage-2.yaml` nikt się nie starzeje przez pierwsze 150 000 tur, więc narodziny zobaczysz dopiero po rozruchu albo z `--tps 400`:
 
 ```

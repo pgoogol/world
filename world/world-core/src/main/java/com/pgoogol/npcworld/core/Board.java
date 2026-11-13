@@ -159,6 +159,27 @@ final class Board {
         }
     }
 
+    int count(CellType type) {
+        int count = 0;
+        for (CellType cell : cells) {
+            if (cell == type) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /** All cells of a type, row by row. */
+    List<Position> positionsOf(CellType type) {
+        List<Position> positions = new java.util.ArrayList<>();
+        for (int index = 0; index < cells.length; index++) {
+            if (cells[index] == type) {
+                positions.add(new Position(index % width, index / width));
+            }
+        }
+        return positions;
+    }
+
     /** A cell an NPC can stand on without being hurt. */
     boolean isSafe(int x, int y) {
         CellType cell = get(x, y);

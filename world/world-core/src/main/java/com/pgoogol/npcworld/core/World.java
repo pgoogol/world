@@ -31,8 +31,13 @@ public final class World {
     private final List<Npc> npcs = new ArrayList<>();
     private final List<WorldListener> listeners = new ArrayList<>();
     private final List<Integer> retired = new ArrayList<>();
+    // Stage 3: an NPC that died for good shows up once more, dead, so its brain gets the penalty;
+    // its id reaches the brain as retired one tick later.
+    private final List<NpcView> departed = new ArrayList<>();
+    private final List<Integer> retiringNext = new ArrayList<>();
     private int nextNpcId;
     private long tick;
+    private long lastBirthTick = Long.MIN_VALUE / 4;
 
     /** Board and spawn positions come from the seed in the config. */
     public World(WorldConfig config) {
@@ -48,9 +53,15 @@ public final class World {
         this.config = config;
         this.random = random;
         this.board = board != null ? board : BoardGenerator.generate(config, random);
+        int radius = config.population().foundersRadius();
+        Position camp = radius > 0 ? randomSafeCell() : null;
         for (int slot = 0; slot < config.npcs(); slot++) {
             Npc npc = new Npc(nextNpcId++);
-            respawn(npc);
+            if (camp == null) {
+                respawn(npc);
+            } else {
+                settleNear(npc, camp, radius);
+            }
             if (config.agingEnabled()) {
                 npc.lifespan = drawLifespan();
                 // Founders start at evenly spread ages, so they die one after another, not all at once.
@@ -68,19 +79,35 @@ public final class World {
         return tick;
     }
 
-    /** What every NPC sees right now, together with the outcome of its previous action. */
+    /** Living NPCs. */
+    public int population() {
+        return npcs.size();
+    }
+
+    /**
+     * What every NPC sees right now, together with the outcome of its previous action. In stage 3
+     * an NPC that has just died for good comes last, once, with {@code died} set; its action is ignored.
+     */
     public List<NpcView> views() {
-        List<NpcView> views = new ArrayList<>(npcs.size());
+        List<NpcView> views = new ArrayList<>(npcs.size() + departed.size());
         for (Npc npc : npcs) {
-            views.add(new NpcView(npc.id, observe(npc), npc.reward, npc.died, npc.truncated,
-                    Optional.ofNullable(npc.finalObservation), neighboursOf(npc)));
+            views.add(view(npc));
         }
+        views.addAll(departed);
         return views;
+    }
+
+    private NpcView view(Npc npc) {
+        return new NpcView(npc.id, observe(npc), npc.reward, npc.died, npc.truncated,
+                Optional.ofNullable(npc.finalObservation), neighboursOf(npc));
     }
 
     /** Applies one action per NPC and advances the clock by one tick. */
     public void step(Map<Integer, Action> actions) {
         boolean ageing = config.agingEnabled() && tick >= config.agingStartTick();
+        departed.clear();
+        retired.addAll(retiringNext);
+        retiringNext.clear();
         SeasonConfig seasons = config.seasons();
         Season season = seasons.seasonAt(tick);
         double[] consumeRewards = new double[npcs.size()];
@@ -113,8 +140,17 @@ public final class World {
         }
         double springBonus = seasonChanged && next == Season.SPRING ? config.rewards().winterSurvived() : 0;
 
+        List<Npc> dead = new ArrayList<>();
         for (int i = 0; i < npcs.size(); i++) {
-            settle(npcs.get(i), consumeRewards[i] + springBonus);
+            if (settle(npcs.get(i), consumeRewards[i] + springBonus)) {
+                dead.add(npcs.get(i));
+            }
+        }
+        for (Npc npc : dead) {
+            // Death is final: the NPC leaves the world after one last view.
+            departed.add(view(npc));
+            npcs.remove(npc);
+            retiringNext.add(npc.id);
         }
 
         if (seasonChanged) {
@@ -122,12 +158,22 @@ public final class World {
             listeners.forEach(listener -> listener.onSeasonChanged(event));
         }
 
-        if (config.agingEnabled()) {
+        if (config.agingEnabled() && config.population().newbornOnOldAge()) {
+            // Stage 2. Slots in ascending order: the order decides the random draws.
             for (int slot = 0; slot < npcs.size(); slot++) {
                 if (npcs.get(slot).totalAge >= npcs.get(slot).lifespan) {
                     replaceWithNewborn(slot);
                 }
             }
+        } else if (config.agingEnabled()) {
+            for (int slot = npcs.size() - 1; slot >= 0; slot--) {
+                if (npcs.get(slot).totalAge >= npcs.get(slot).lifespan) {
+                    dieOfOldAge(slot);
+                }
+            }
+        }
+        if (config.population().birthsEnabled()) {
+            maybeBirth();
         }
     }
 
@@ -146,7 +192,7 @@ public final class World {
                 board.amounts(), npcs.stream().map(Npc::snapshot).toList());
     }
 
-    /** For tests: direct access to the NPC in a slot (slot = id until someone dies of old age). */
+    /** For tests: direct access to the NPC in a slot (slot = id until someone dies or is born). */
     Npc npc(int slot) {
         return npcs.get(slot);
     }
@@ -194,13 +240,25 @@ public final class World {
         }
     }
 
-    /** Eats wild food or drinks water on the NPC's own cell. */
+    /**
+     * Eats or drinks on the NPC's own cell: wild food, water and, in stage 3, one portion straight
+     * from a ripe field or a store.
+     */
     private double consume(Npc npc) {
         CellType cell = board.get(npc.position);
         if (cell == CellType.FOOD) {
             double reward = eat(npc);
             board.eatFood(npc.position, config.foodRegrowTicks());
             return reward;
+        }
+        if (cell == CellType.FIELD_RIPE) {
+            double reward = eat(npc);
+            takePortionFromField(npc);
+            return reward;
+        }
+        if (cell == CellType.STORE && board.amount(npc.position) > 0) {
+            board.setAmount(npc.position, board.amount(npc.position) - 1);
+            return eat(npc);
         }
         if (cell == CellType.WATER) {
             RewardConfig rewards = config.rewards();
@@ -243,16 +301,21 @@ public final class World {
             }
             case FIELD_RIPE -> {
                 npc.food++;
-                int left = board.amount(npc.position) - 1;
-                board.setAmount(npc.position, left);
-                if (left == 0) {
-                    board.replace(npc.position, CellType.EMPTY);
-                    FieldHarvested event = new FieldHarvested(tick + 1, npc.id, npc.position);
-                    listeners.forEach(listener -> listener.onFieldHarvested(event));
-                }
+                takePortionFromField(npc);
             }
             default -> {
             }
+        }
+    }
+
+    /** One portion less on the ripe field under the NPC; the last one leaves an empty cell. */
+    private void takePortionFromField(Npc npc) {
+        int left = board.amount(npc.position) - 1;
+        board.setAmount(npc.position, left);
+        if (left == 0) {
+            board.replace(npc.position, CellType.EMPTY);
+            FieldHarvested event = new FieldHarvested(tick + 1, npc.id, npc.position);
+            listeners.forEach(listener -> listener.onFieldHarvested(event));
         }
     }
 
@@ -370,7 +433,8 @@ public final class World {
         }
     }
 
-    private void settle(Npc npc, double consumeReward) {
+    /** Sets the reward for the tick. Returns true when the NPC died for good (stage 3). */
+    private boolean settle(Npc npc, double consumeReward) {
         npc.died = false;
         npc.truncated = false;
         npc.finalObservation = null;
@@ -378,8 +442,13 @@ public final class World {
         if (npc.energy <= 0) {
             npc.reward = config.rewards().death();
             npc.died = true;
+            if (config.population().deathIsFinal()) {
+                LifeEnded event = new LifeEnded(npc.id, tick, npc.age, LifeEnded.Cause.DEATH, npc.generation, npc.totalAge);
+                listeners.forEach(listener -> listener.onLifeEnded(event));
+                return true;
+            }
             endLife(npc, LifeEnded.Cause.DEATH);
-            return;
+            return false;
         }
 
         npc.reward = config.rewards().perTick() + consumeReward;
@@ -388,6 +457,7 @@ public final class World {
             npc.finalObservation = observe(npc);
             endLife(npc, LifeEnded.Cause.LIFE_LIMIT);
         }
+        return false;
     }
 
     private void endLife(Npc npc, LifeEnded.Cause cause) {
@@ -428,6 +498,84 @@ public final class World {
             listener.onNpcRetired(retiredEvent);
             listener.onNpcBorn(bornEvent);
         });
+    }
+
+    /** Stage 3: old age without a replacement. Births come from the stores instead. */
+    private void dieOfOldAge(int slot) {
+        Npc old = npcs.remove(slot);
+        retired.add(old.id);
+        NpcRetired event = new NpcRetired(old.id, tick, old.totalAge, old.generation);
+        listeners.forEach(listener -> listener.onNpcRetired(event));
+    }
+
+    /**
+     * Stage 3: a newborn appears next to the fullest store when the stores hold the birth cost on top of
+     * a reserve for every living NPC, the shelters have a free place and enough time passed since the
+     * last birth. The cost comes out of the fullest store.
+     */
+    private void maybeBirth() {
+        PopulationConfig population = config.population();
+        int living = npcs.size();
+        if (living < 2 || living >= population.maxNpcs() || tick - lastBirthTick < population.birthIntervalTicks()) {
+            return;
+        }
+        if (living >= board.count(CellType.SHELTER) * config.economy().shelterCapacity()) {
+            return;
+        }
+        Position fullest = null;
+        int stored = 0;
+        for (Position store : board.positionsOf(CellType.STORE)) {
+            stored += board.amount(store);
+            if (fullest == null || board.amount(store) > board.amount(fullest)) {
+                fullest = store;
+            }
+        }
+        if (fullest == null || stored < population.birthFoodCost() + population.birthReservePerNpc() * living
+                || board.amount(fullest) < population.birthFoodCost()) {
+            return;
+        }
+        board.setAmount(fullest, board.amount(fullest) - population.birthFoodCost());
+
+        Npc parent = npcs.get(random.nextInt(living));
+        Npc newborn = new Npc(nextNpcId++);
+        newborn.generation = parent.generation + 1;
+        newborn.energy = config.energyMax();
+        if (config.agingEnabled()) {
+            newborn.lifespan = drawLifespan();
+        }
+        newborn.position = safeCellAround(fullest);
+        if (newborn.position == null) {
+            respawn(newborn);
+        }
+        npcs.add(newborn);
+        lastBirthTick = tick;
+        NpcBorn event = new NpcBorn(newborn.id, tick, newborn.generation, Optional.of(parent.id));
+        listeners.forEach(listener -> listener.onNpcBorn(event));
+    }
+
+    private Position randomSafeCell() {
+        int x;
+        int y;
+        do {
+            x = 1 + random.nextInt(config.width() - 2);
+            y = 1 + random.nextInt(config.height() - 2);
+        } while (!board.isSafe(x, y));
+        return new Position(x, y);
+    }
+
+    /** A founder: a random safe cell at most {@code radius} cells from the camp in each direction. */
+    private void settleNear(Npc npc, Position camp, int radius) {
+        int x;
+        int y;
+        do {
+            x = camp.x() - radius + random.nextInt(2 * radius + 1);
+            y = camp.y() - radius + random.nextInt(2 * radius + 1);
+        } while (!board.contains(x, y) || !board.isSafe(x, y));
+        npc.position = new Position(x, y);
+        npc.hunger = 0;
+        npc.thirst = 0;
+        npc.energy = config.energyMax();
+        npc.age = 0;
     }
 
     /** A random safe cell in the 3x3 around a position, or null when there is none. */

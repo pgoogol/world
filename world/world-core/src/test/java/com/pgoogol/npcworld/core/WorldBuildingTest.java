@@ -154,6 +154,25 @@ class WorldBuildingTest {
     }
 
     @Test
+    void consumeEatsOnePortionStraightFromAStore() {
+        World world = world(board -> {
+            board.replace(CENTRE, CellType.STORE);
+            board.setAmount(CENTRE, 3);
+        });
+        world.npc(0).hunger = 60;
+        world.npc(0).wood = 4;
+
+        step(world, Action.CONSUME);
+        assertThat(world.npc(0).hunger).isEqualTo(21);
+        assertThat(world.snapshot().amountAt(2, 2)).isEqualTo(2);
+
+        World empty = world(board -> board.replace(CENTRE, CellType.STORE));
+        empty.npc(0).hunger = 60;
+        step(empty, Action.CONSUME);
+        assertThat(empty.npc(0).hunger).isEqualTo(61);
+    }
+
+    @Test
     void depositAndWithdrawWorkOnlyOnAStore() {
         World world = world(board -> board.replace(CENTRE, CellType.SHELTER));
         world.npc(0).food = 2;

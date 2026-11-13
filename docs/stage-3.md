@@ -24,7 +24,7 @@ Zasady etapów 1 i 2 obowiązują dalej. Każda nowa zasada ma przełącznik alb
 - **Plansza 64×64.** Typy pól z etapu 1 plus drzewo, pniak, pole zasiane, pole dojrzałe, plac budowy schronienia, plac budowy magazynu, schronienie i magazyn. Po każdym polu poza ścianą i lawą da się chodzić.
 - **Pory roku.** Rok ma cztery pory o równej długości: wiosnę, lato, jesień i zimę. Odrastanie jedzenia, drzew i pól liczy punkty wzrostu: wiosną i latem pełne, jesienią połowa, zimą zero. Pierwszego dnia zimy dzikie jedzenie i niezebrane dojrzałe pola marnieją, a dzikie jedzenie odrasta dopiero wiosną. Zimą postać poza schronieniem traci energię z zimna.
 - **Energia wraca.** W turze bez żadnej straty postać odzyskuje trochę energii. Bez tego każda postać prędzej czy później by umarła, bo śmierć jest teraz ostateczna.
-- **Przedmioty.** Postać nosi najwyżej 4 przedmioty: porcje jedzenia i drewno. Zbiera je ruchem „zbierz” z dzikiego jedzenia, z dojrzałego pola i z drzewa. Ścięte drzewo zostawia pniak, który z czasem odrasta. Niesione jedzenie zjada osobnym ruchem.
+- **Przedmioty.** Postać nosi najwyżej 4 przedmioty: porcje jedzenia i drewno. Zbiera je ruchem „zbierz” z dzikiego jedzenia, z dojrzałego pola i z drzewa. Ścięte drzewo zostawia pniak, który z czasem odrasta. Niesione jedzenie zjada osobnym ruchem. Ruch „jedz” działa też wprost na dojrzałym polu i na magazynie (jedna porcja), więc postać z rękami pełnymi drewna nie głoduje obok jedzenia.
 - **Sadzenie.** Postać sadzi niesioną porcję jedzenia na pustym polu. Pole dojrzewa po określonej liczbie punktów wzrostu i daje kilka porcji, które zbiera się po jednej. Sadzisz jedną porcję, zbierasz cztery. Specyfikacja wstępna mówiła o nasionach; porcja jedzenia w roli nasiona daje ten sam wybór (zjeść teraz albo zasiać) bez dodatkowego przedmiotu.
 - **Budowanie.** Postać zakłada plac budowy na pustym polu, a potem przynosi na niego drewno i pracuje. Każde drewno i każda tura pracy to jeden ruch „buduj”, więc kilka postaci może budować razem. Schronienie chroni przed zimnem do 4 postaci, które na nim stoją. Magazyn przyjmuje niesione jedzenie i wydaje je po jednej porcji. Jedzenie w magazynie się nie psuje.
 - **Śmierć i narodziny.** Upadek z głodu, pragnienia, zimna albo lawy oznacza śmierć na stałe, tak jak starość. Noworodek rodzi się przy magazynie, gdy w magazynach leży nadwyżka jedzenia ponad zapas na każdego mieszkańca, w schronieniach są wolne miejsca, a od poprzednich narodzin minął ustalony czas. Narodziny kosztują porcje z magazynu. Osada może więc rosnąć, kurczyć się i wymrzeć.
@@ -66,8 +66,8 @@ Wartości do strojenia w `config/stage-3.yaml`. Krok 3.6 ustala je tak, żeby ś
 | Plansza | 64×64 razem ze ścianą |
 | Postacie na starcie / limit | 20 / 50 |
 | Założyciele | w promieniu 4 pól od losowego miejsca |
-| Udział pól jedzenia / wody / lawy / drzew | 3% / 2% / 3% / 5% |
-| Odrastanie dzikiego jedzenia / drzew | 100 / 300 tur pełnego wzrostu |
+| Udział pól jedzenia / wody / lawy / drzew | 6% / 2% / 3% / 5% |
+| Odrastanie dzikiego jedzenia / drzew | 60 / 300 tur pełnego wzrostu |
 | Długość pory roku | 500 tur (rok 2000) |
 | Wzrost wiosną / latem / jesienią / zimą | 100% / 100% / 50% / 0% |
 | Zimno zimą | −1 energii na turę poza schronieniem |
@@ -76,7 +76,7 @@ Wartości do strojenia w `config/stage-3.yaml`. Krok 3.6 ustala je tak, żeby ś
 | Dojrzewanie pola | 300 tur pełnego wzrostu, plon 4 porcje |
 | Schronienie | 6 drewna, 30 tur pracy, 4 miejsca |
 | Magazyn | 4 drewna, 20 tur pracy, 100 porcji |
-| Narodziny | 10 porcji z magazynu, zapas 5 porcji na mieszkańca, co najmniej 250 tur odstępu |
+| Narodziny | 10 porcji z magazynu, zapas 5 porcji na mieszkańca, co najmniej 200 tur odstępu |
 | Wycinek planszy w obserwacji | 7×7 |
 | Długość życia | 3 lata (6000 tur) ± 20% |
 | Premia za przeżytą zimę | +5 |
@@ -106,7 +106,7 @@ Pora roku jest krótsza niż w specyfikacji wstępnej (500 zamiast 1000 tur), bo
 
   *Gotowe, gdy:* testy sprawdzają koszt, czas budowy, pojemność i ochronę przed zimnem.
 
-- [ ] **3.6 Śmierć, narodziny i osada ze scenariusza.** Ostateczna śmierć, narodziny z nadwyżki, mózg ze scenariuszem napisanym ręcznie (zbieraj, sadź, buduj, magazynuj) i ten sam scenariusz bez budowania.
+- [x] **3.6 Śmierć, narodziny i osada ze scenariusza.** Ostateczna śmierć, narodziny z nadwyżki, mózg ze scenariuszem napisanym ręcznie (zbieraj, sadź, buduj, magazynuj) i ten sam scenariusz bez budowania.
 
   *Gotowe, gdy:* osada ze scenariuszem przeżywa 5 zim, a wersja bez budowania wymiera przed końcem drugiej zimy. Ten krok stroi parametry świata.
 
@@ -135,6 +135,36 @@ Pora roku jest krótsza niż w specyfikacji wstępnej (500 zamiast 1000 tur), bo
   *Gotowe, gdy:* w oknie widać cykl roku: zbiory jesienią, schronienia zimą, zasiewy wiosną.
 
 - [ ] **3.13 Odbiór etapu.** Sprawdź kryteria i wpisz wyniki do `ROADMAP.md`.
+
+## Wyniki kroków
+
+### 3.6 Osada ze scenariusza
+
+Seed 42, plansza 64×64, 20 założycieli, pięć lat (10 000 tur). Scenariusz napisany ręcznie łączy to, co widzą wszystkie postacie, w jedną pamięć osady: wybiera dom przy wodzie, planuje magazyny pod zimowy zapas i schronienia pod liczbę mieszkańców, a role dzieli na budowniczych (co trzecia postać, gdy jest plac budowy) i zbieraczy. Zimą wszyscy stoją w schronieniach i jedzą z magazynów.
+
+| Zima | Postacie przed zimą | Po zimie | Jedzenie w magazynach | Schronienia | Magazyny |
+|---|---|---|---|---|---|
+| 1 | 21 | 19 | 354 | 8 | 4 |
+| 2 | 23 | 23 | 317 | 9 | 4 |
+| 3 | 23 | 24 | 325 | 9 | 4 |
+| 4 | 25 | 25 | 295 | 9 | 5 |
+| 5 | 21 | 20 | 358 | 9 | 5 |
+
+- **Z budowaniem osada przeżywa pięć zim:** po każdej zimie żyje ponad połowa, a po pięciu latach 20 postaci, tyle samo co na starcie. Przez pięć lat z innych przyczyn niż starość zginęły 4 postacie.
+- **Bez budowania osada wymiera w 1600. turze,** 100 tur po początku pierwszej zimy: zimno zabiera energię szybciej, niż wraca, a jedzenia nie ma gdzie przechować.
+- **Zapas jest niewielki.** 20 postaci po pięciu latach to dokładnie próg kryterium. Wynik pochodzi z jednego seeda.
+
+Strojenie świata w tym kroku:
+
+- **Dzikiego jedzenia było za mało.** Przy 3% pól i odrastaniu po 100 turach osada znała zwykle 2–13 miejsc z jedzeniem i postacie umierały z głodu już wiosną. Teraz 6% pól i 60 tur.
+- **Odstęp między narodzinami spadł z 250 do 200 tur,** żeby narodziny nadążały za śmiercią ze starości (założyciele mają wiek rozłożony na całą długość życia, więc w pierwszych latach umiera ich około sześciu rocznie).
+- **„Jedz” na polu i magazynie.** Budowniczy z czterema drewnami nie mógł wziąć porcji z magazynu i umierał z głodu obok jedzenia.
+
+Lekcje dla uczenia w kroku 3.11, wyciągnięte z poprawek scenariusza:
+
+- Zimą marnieje jedzenie, którego nikt nie widzi. Pamięć, która tego nie uwzględnia, prowadzi wiosną do pustych krzaków.
+- Głodna postać musi iść do jedzenia pewnego (widzianego albo w magazynie). Krzaki „na próbę” zabijały postacie przy pełnych magazynach.
+- Drewna nie da się odłożyć. Kto je niesie bez placu budowy, ma ręce zajęte na zawsze.
 
 ## Kryteria ukończenia etapu
 

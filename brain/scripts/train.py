@@ -3,6 +3,7 @@
 Usage (from the brain/ directory, after `.\\mvnw.cmd verify` in world/):
     uv run python scripts/train.py --variant self|fixed|random [--ticks N] [--resume] [--evaluate]
                                    [--config PATH] [--name NAME] [--sharing all|none|inherit|observe|map] [--episodes]
+                                   [--settlement]
 
 Writes statistics to out/<variant>.csv and, for learning variants, tables to brain/data/.
 Every run starts from empty tables unless --resume is given, so the same seed gives the same CSV.
@@ -23,6 +24,9 @@ VARIANTS = {
     "random": {"kind": "random"},
     "fixed": {"kind": "qlearning", "tuning": "fixed"},
     "self": {"kind": "qlearning", "tuning": "self"},
+    # Stage 3: the hand-written settlement, with and without building.
+    "scripted": {"kind": "scripted"},
+    "scripted-nobuild": {"kind": "scripted", "build": False},
 }
 
 
@@ -53,6 +57,8 @@ def main() -> int:
                                        "several runs of one variant apart")
     parser.add_argument("--sharing", choices=sorted(SHARING),
                         help="stage 2: which knowledge sharing mechanisms are on (default: as in the config)")
+    parser.add_argument("--settlement", action="store_true",
+                        help="stage 3: also write out/<name>-settlement.csv: population, stores and buildings per window")
     parser.add_argument("--episodes", action="store_true",
                         help="also write out/<name>-episodes.csv: one row per life episode, birth and death of old age")
     parser.add_argument("--evaluate", action="store_true",
@@ -64,7 +70,11 @@ def main() -> int:
         print(f"Missing {WORLD_JAR}. Build the world first: .\\mvnw.cmd verify in world/", file=sys.stderr)
         return 1
 
-    config = dataclasses.replace(load_config(args.config), **VARIANTS[args.variant])
+    overrides = dict(VARIANTS[args.variant])
+    build = overrides.pop("build", None)
+    config = dataclasses.replace(load_config(args.config), **overrides)
+    if build is not None:
+        config = dataclasses.replace(config, scenario=dataclasses.replace(config.scenario, build=build))
     if args.sharing:
         config = dataclasses.replace(config, sharing=dataclasses.replace(config.sharing, **SHARING[args.sharing]))
     name = args.name or args.variant
@@ -87,6 +97,8 @@ def main() -> int:
             command += ["--ticks", str(args.ticks)]
         if args.episodes:
             command += ["--episodes", str(out.with_name(out.stem + "-episodes.csv"))]
+        if args.settlement:
+            command += ["--settlement", str(out.with_name(out.stem + "-settlement.csv"))]
         result = subprocess.run(command, cwd=REPO_ROOT)
     finally:
         server.stop(grace=1).wait()
