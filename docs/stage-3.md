@@ -94,7 +94,7 @@ Pora roku jest krótsza niż w specyfikacji wstępnej (500 zamiast 1000 tur), bo
 
   *Gotowe, gdy:* każda zasada ma test, a rok przebiega powtarzalnie na tym samym seedzie.
 
-- [ ] **3.3 Przedmioty i drzewa.** Ekwipunek, zbieranie drewna, noszenie jedzenia, odkładanie i podnoszenie.
+- [x] **3.3 Przedmioty i drzewa.** Ekwipunek, zbieranie drewna, noszenie jedzenia, odkładanie i podnoszenie.
 
   *Gotowe, gdy:* każda zasada ma test, w tym limit ekwipunku i to, że przedmioty nie znikają ani się nie mnożą.
 

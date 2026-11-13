@@ -153,28 +153,78 @@ public final class World {
 
     /** Returns the reward earned by eating or drinking, zero for any other action. */
     private double act(Npc npc, Action action) {
-        if (action != Action.CONSUME) {
-            Position target = npc.position.moved(action);
-            if (board.get(target) != CellType.WALL) {
-                npc.position = target;
+        return switch (action) {
+            case STAY, UP, DOWN, LEFT, RIGHT -> {
+                move(npc, action);
+                yield 0;
             }
-            return 0;
-        }
+            case CONSUME -> consume(npc);
+            case GATHER -> {
+                gather(npc);
+                yield 0;
+            }
+            case EAT_CARRIED -> eatCarried(npc);
+            case PLANT, BUILD_SHELTER, BUILD_STORE, DEPOSIT, WITHDRAW -> 0;
+        };
+    }
 
-        RewardConfig rewards = config.rewards();
+    private void move(Npc npc, Action action) {
+        Position target = npc.position.moved(action);
+        if (board.get(target) != CellType.WALL) {
+            npc.position = target;
+        }
+    }
+
+    /** Eats wild food or drinks water on the NPC's own cell. */
+    private double consume(Npc npc) {
         CellType cell = board.get(npc.position);
         if (cell == CellType.FOOD) {
-            double reward = npc.hunger >= rewards.consumeNeedMin() ? rewards.consume() : 0;
-            npc.hunger = Math.max(0, npc.hunger - config.consumeRelief());
+            double reward = eat(npc);
             board.eatFood(npc.position, config.foodRegrowTicks());
             return reward;
         }
         if (cell == CellType.WATER) {
+            RewardConfig rewards = config.rewards();
             double reward = npc.thirst >= rewards.consumeNeedMin() ? rewards.consume() : 0;
             npc.thirst = Math.max(0, npc.thirst - config.consumeRelief());
             return reward;
         }
         return 0;
+    }
+
+    private double eat(Npc npc) {
+        RewardConfig rewards = config.rewards();
+        double reward = npc.hunger >= rewards.consumeNeedMin() ? rewards.consume() : 0;
+        npc.hunger = Math.max(0, npc.hunger - config.consumeRelief());
+        return reward;
+    }
+
+    private double eatCarried(Npc npc) {
+        if (npc.food == 0) {
+            return 0;
+        }
+        npc.food--;
+        return eat(npc);
+    }
+
+    /** Picks up one item from the NPC's own cell: food from wild food, wood from a tree. */
+    private void gather(Npc npc) {
+        EconomyConfig economy = config.economy();
+        if (npc.food + npc.wood >= economy.inventorySize()) {
+            return;
+        }
+        switch (board.get(npc.position)) {
+            case FOOD -> {
+                npc.food++;
+                board.eatFood(npc.position, config.foodRegrowTicks());
+            }
+            case TREE -> {
+                npc.wood++;
+                board.startGrowth(npc.position, CellType.STUMP, CellType.TREE, economy.treeRegrowTicks());
+            }
+            default -> {
+            }
+        }
     }
 
     private void growNeeds(Npc npc) {
