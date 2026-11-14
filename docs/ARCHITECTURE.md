@@ -153,6 +153,8 @@ Wygenerowanego kodu nie commitujemy w żadnym języku.
 64. **Scenariusz w etapie 3 widzi to, co cała osada.** Ręcznie napisana osada łączy obserwacje wszystkich postaci w jedną pamięć i planuje za grupę. To dowód, że świat da się przeżyć, a nie wzór dla uczenia; sieć w kroku 3.9 dostaje wiedzę osady w podobny sposób, przez jedną sieć na osadę.
 65. **Scenariusz zna zasady świata.** Parametry potrzebne do planowania (długość pory roku, pojemność schronienia i magazynu, koszt budowli) czyta z tego samego pliku konfiguracji co świat. Uczący się mózg tych liczb nie dostanie.
 66. **Statystyki osady.** `--settlement` w trybie treningu zapisuje na każde okno populację, narodziny, zgony, zapasy i budowle. Przebieg kończy się wcześniej, gdy osada wymrze. `scripts/winters.py` liczy z tego przeżycie zim.
+67. **PyTorch jako opcjonalna grupa `nn`.** `uv sync` go nie instaluje; pomiar tempa i kroki od 3.9 uruchamiają się przez `uv run --group nn`. Wersja 2.15 ma paczkę dla Pythona 3.14 na Windows, więc mózgi zostają na 3.14.
+68. **Pomiar tempa rozdziela świat, transport i mózg.** `--brain local` w trybie treningu daje losowe ruchy w procesie Javy (sam świat), serwer w `scripts/speed.py` liczy czas spędzony w mózgu, a różnica to transport.
 
 ## Co dochodzi później
 

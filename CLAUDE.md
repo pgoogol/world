@@ -103,6 +103,12 @@ uv run python scripts/train.py --variant scripted-nobuild --config ../config/sta
 uv run python scripts/winters.py --runs s3-scripted s3-scripted-nobuild
 ```
 
+Pomiar tempa etapu 3, w katalogu `brain/` (wiersz z siecią wymaga grupy `nn`, czyli PyTorcha):
+
+```
+uv run --group nn python scripts/speed.py --ticks 4000 --npcs 20 50
+```
+
 Tryb pokazu etapu 2: serwer w katalogu `brain/`, okno w katalogu głównym repo. W `config/stage-2.yaml` nikt się nie starzeje przez pierwsze 150 000 tur, więc narodziny zobaczysz dopiero po rozruchu albo z `--tps 400`:
 
 ```

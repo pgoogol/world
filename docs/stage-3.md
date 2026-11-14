@@ -110,7 +110,7 @@ Pora roku jest krótsza niż w specyfikacji wstępnej (500 zamiast 1000 tur), bo
 
   *Gotowe, gdy:* osada ze scenariuszem przeżywa 5 zim, a wersja bez budowania wymiera przed końcem drugiej zimy. Ten krok stroi parametry świata.
 
-- [ ] **3.7 Skala i tempo.** Plansza 64×64, do 50 postaci, pomiar tur na sekundę ze scenariuszem i z pustą siecią, profilowanie transportu i świata.
+- [x] **3.7 Skala i tempo.** Plansza 64×64, do 50 postaci, pomiar tur na sekundę ze scenariuszem i z pustą siecią, profilowanie transportu i świata.
 
   *Gotowe, gdy:* znamy tempo i wiemy, ile trwa rok symulacji. Jeśli rok trwa dłużej niż 20 sekund, krok kończy się planem przyspieszenia (większe paczki, kilka światów naraz), zanim ruszy uczenie.
 
@@ -165,6 +165,28 @@ Lekcje dla uczenia w kroku 3.11, wyciągnięte z poprawek scenariusza:
 - Zimą marnieje jedzenie, którego nikt nie widzi. Pamięć, która tego nie uwzględnia, prowadzi wiosną do pustych krzaków.
 - Głodna postać musi iść do jedzenia pewnego (widzianego albo w magazynie). Krzaki „na próbę” zabijały postacie przy pełnych magazynach.
 - Drewna nie da się odłożyć. Kto je niesie bez placu budowy, ma ręce zajęte na zawsze.
+
+### 3.7 Skala i tempo
+
+Plansza 64×64, 4000 tur na pomiar, jeden wątek po stronie mózgów. Losowe ruchy i pusta sieć zabijają osadę w kilkaset tur, więc te wiersze liczą świat ze stałą populacją (bez ostatecznej śmierci, starości i narodzin). Osada ze scenariusza działa na prawdziwych zasadach.
+
+| Postacie | Mózg | Tur/s | Rok (s) | ms/turę | W tym mózg (ms) |
+|---|---|---|---|---|---|
+| 20 | sam świat, ruchy w procesie Javy | 22 013 | 0,1 | 0,05 | – |
+| 20 | losowy przez gRPC | 799 | 2,5 | 1,25 | 0,07 |
+| 20 | scenariusz | 102 | 19,6 | 9,80 | 8,26 |
+| 20 | pusta sieć (MLP, PyTorch) | 499 | 4,0 | 2,00 | 0,75 |
+| 50 | sam świat, ruchy w procesie Javy | 15 195 | 0,1 | 0,07 | – |
+| 50 | losowy przez gRPC | 739 | 2,7 | 1,35 | 0,12 |
+| 50 | scenariusz | 82 | 24,4 | 12,20 | 10,52 |
+| 50 | pusta sieć (MLP, PyTorch) | 367 | 5,4 | 2,72 | 1,25 |
+
+- **Świat nie jest wąskim gardłem.** Bez gRPC liczy 15–22 tysiące tur na sekundę.
+- **Większość czasu tury zjada transport.** Wywołanie gRPC z kodowaniem wiadomości kosztuje około 1,2 ms na turę, kilkanaście razy więcej niż sam świat.
+- **Rok z siecią trwa 4–5,4 s,** poniżej progu 20 s. Plan przyspieszenia przed uczeniem nie jest potrzebny.
+- **Scenariusz jest wolny (20–24 s na rok)** przez przeszukiwanie mapy w Pythonie co turę. Służy tylko jako dowód, więc go nie przyspieszam.
+
+Gdyby uczenie w kroku 3.11 potrzebowało więcej lat symulacji, pierwszym krokiem jest kilka światów w jednym zapytaniu `Step`: koszt transportu rozłoży się na kilka osad, a świat ma zapas kilkunastokrotny.
 
 ## Kryteria ukończenia etapu
 
