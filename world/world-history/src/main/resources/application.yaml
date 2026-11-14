@@ -1,0 +1,15 @@
+# Stage 3 chronicle. The database comes from docker-compose.yml in the repo root (local development only).
+spring:
+  main:
+    web-application-type: none
+    banner-mode: off
+  datasource:
+    url: jdbc:postgresql://localhost:55432/npcworld
+    username: npcworld
+    password: npcworld
+  flyway:
+    enabled: true
+
+logging:
+  level:
+    root: warn

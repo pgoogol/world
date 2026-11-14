@@ -14,6 +14,7 @@
         <module>world-core</module>
         <module>world-brain</module>
         <module>world-app</module>
+        <module>world-history</module>
         <module>world-view</module>
     </modules>
 

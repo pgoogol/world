@@ -33,7 +33,7 @@ public final class World {
     private final List<Integer> retired = new ArrayList<>();
     // Stage 3: an NPC that died for good shows up once more, dead, so its brain gets the penalty;
     // its id reaches the brain as retired one tick later.
-    private final List<NpcView> departed = new ArrayList<>();
+    private final List<Departed> departed = new ArrayList<>();
     private final List<Integer> retiringNext = new ArrayList<>();
     private int nextNpcId;
     private long tick;
@@ -47,6 +47,38 @@ public final class World {
     /** For tests: a hand-made board instead of a generated one. */
     World(WorldConfig config, Board board) {
         this(config, new Random(config.seed()), board);
+    }
+
+    /** An NPC that died for good in the last tick, with the neighbours it had at its death. */
+    private record Departed(Npc npc, List<Integer> neighbours) {
+    }
+
+    /** Stage 3: a world that continues exactly where a saved one stopped. */
+    public static World restore(WorldConfig config, WorldState state) {
+        return new World(config, state);
+    }
+
+    private World(WorldConfig config, WorldState state) {
+        this.config = config;
+        this.random = RandomState.restore(state.random());
+        this.board = Board.restore(config.width(), config.height(), state);
+        this.tick = state.tick();
+        this.nextNpcId = state.nextNpcId();
+        this.lastBirthTick = state.lastBirthTick();
+        state.npcs().forEach(npc -> npcs.add(npc.toNpc()));
+        for (int i = 0; i < state.departed().size(); i++) {
+            departed.add(new Departed(state.departed().get(i).toNpc(), state.departedNeighbours().get(i)));
+        }
+        retired.addAll(state.retired());
+        retiringNext.addAll(state.retiringNext());
+    }
+
+    /** Stage 3: the complete state, to save it and continue later with {@link #restore}. */
+    public WorldState exportState() {
+        return new WorldState(tick, nextNpcId, lastBirthTick, board.cells(), board.timers(), board.growsInto(),
+                board.amounts(), board.works(), npcs.stream().map(NpcState::of).toList(),
+                departed.stream().map(entry -> NpcState.of(entry.npc())).toList(),
+                departed.stream().map(Departed::neighbours).toList(), retired, retiringNext, RandomState.save(random));
     }
 
     private World(WorldConfig config, Random random, Board board) {
@@ -93,7 +125,11 @@ public final class World {
         for (Npc npc : npcs) {
             views.add(view(npc));
         }
-        views.addAll(departed);
+        for (Departed entry : departed) {
+            Npc npc = entry.npc();
+            views.add(new NpcView(npc.id, observe(npc), npc.reward, npc.died, npc.truncated, Optional.empty(),
+                    entry.neighbours()));
+        }
         return views;
     }
 
@@ -148,7 +184,7 @@ public final class World {
         }
         for (Npc npc : dead) {
             // Death is final: the NPC leaves the world after one last view.
-            departed.add(view(npc));
+            departed.add(new Departed(npc, neighboursOf(npc)));
             npcs.remove(npc);
             retiringNext.add(npc.id);
         }

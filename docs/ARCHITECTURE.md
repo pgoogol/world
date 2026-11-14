@@ -47,7 +47,7 @@ Procesy łączy gRPC na `localhost:50051`. Mózgi są serwerem. Świat jest klie
 | Widok | JavaFX 25: `Canvas`, `AnimationTimer`, `LineChart` | okno na pulpicie bez strony WWW |
 | Build Javy | Maven, cztery moduły | `world-core` bez zależności od widoku i sieci |
 | Konfiguracja | YAML: SnakeYAML w `world-app`, PyYAML w mózgach | jeden plik `config/stage-1.yaml` dla obu procesów |
-| Testy Javy | JUnit 5 (5.14), AssertJ | test dla każdej zasady świata |
+| Testy Javy | JUnit 5 (5.14), AssertJ, Testcontainers (od etapu 3) | test dla każdej zasady świata |
 | Mózgi | Python 3.14 | biblioteki mają gotowe paczki dla tej wersji |
 | Środowisko Pythona | uv, `pyproject.toml` | jedno narzędzie zamiast pip, venv i pyenv |
 | Uczenie | Q-learning w słowniku, czysty Python | działa na CPU, bez karty graficznej |
@@ -155,13 +155,20 @@ Wygenerowanego kodu nie commitujemy w żadnym języku.
 66. **Statystyki osady.** `--settlement` w trybie treningu zapisuje na każde okno populację, narodziny, zgony, zapasy i budowle. Przebieg kończy się wcześniej, gdy osada wymrze. `scripts/winters.py` liczy z tego przeżycie zim.
 67. **PyTorch jako opcjonalna grupa `nn`.** `uv sync` go nie instaluje; pomiar tempa i kroki od 3.9 uruchamiają się przez `uv run --group nn`. Wersja 2.15 ma paczkę dla Pythona 3.14 na Windows, więc mózgi zostają na 3.14.
 68. **Pomiar tempa rozdziela świat, transport i mózg.** `--brain local` w trybie treningu daje losowe ruchy w procesie Javy (sam świat), serwer w `scripts/speed.py` liczy czas spędzony w mózgu, a różnica to transport.
+69. **Moduł `world-history` jako jedyne miejsce Springa.** Spring Boot 4.1 (JDBC i Flyway, bez serwera WWW) importuje swój BOM tylko w tym module; reszta zostaje bez Springa, a wersje zarządzane przez rodzica (JUnit, protobuf, SnakeYAML) mają pierwszeństwo. Trening działa bez bazy, kronikę daje osobny program `world-history.jar`.
+70. **JdbcClient zamiast JPA.** Kronika to dopisywanie wierszy i kilka zapytań, więc wystarczy JDBC z wsadowym zapisem. Schemat prowadzi Flyway (`V1__chronicle.sql`).
+71. **Kronika pisze w tle.** `ChronicleWriter` zbiera zdarzenia w paczki po 500 i oddaje je jednemu wątkowi zapisu, więc tura nie czeka na bazę. Błąd zapisu wychodzi przy zamknięciu.
+72. **Stan świata jako rekord bez zależności.** `WorldState` żyje w `world-core` i nie wie o JSON-ie ani bazie; serializuje go Jackson 3 w `world-history`. Stan generatora losowego zapisujemy przez serializację `java.util.Random` z filtrem, który przepuszcza tylko tę klasę, bo zmiana generatora zmieniłaby przebiegi etapów 1 i 2.
+73. **Zmarli czekający na ostatni widok są częścią stanu.** Świat trzyma ich z sąsiadami z chwili śmierci, a obserwację liczy przy wydawaniu widoku. Dzięki temu zapis zrobiony w turze czyjejś śmierci wznawia się dokładnie.
+74. **PostgreSQL z Docker Compose na porcie 55432.** Nietypowy port nie koliduje z innym lokalnym PostgreSQL. Hasło `npcworld` służy tylko lokalnej bazie deweloperskiej. Testy biorą własną bazę z Testcontainers i bez Dockera są pomijane.
+75. **Wczytanie zapisu cofa kronikę.** `resume` kasuje zdarzenia i zapisy przebiegu późniejsze niż tura zapisu, jak przy wczytaniu stanu gry. Bez tego kronika miałaby dwie wersje tych samych tur.
 
 ## Co dochodzi później
 
 | Etap | Technologia | Po co |
 |---|---|---|
 | 3 | PyTorch | sieć zamiast tablic Q i PPO dla opóźnionych nagród |
-| 3 | Spring Boot, PostgreSQL, Flyway | historia świata, zapis i wczytywanie stanu |
+| 3 | Spring Boot, PostgreSQL, Flyway | historia świata, zapis i wczytywanie stanu (wdrożone w kroku 3.8) |
 | 4 | LM Studio, serwer zgodny z API OpenAI | propozycje zmian reguł z uzasadnieniem |
 | 5 | Unity 6 | widok 3D wielu osad |
 | 6 | GPU w chmurze, w razie potrzeby | trening self-play, gdy CPU nie nadąży |

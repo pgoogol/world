@@ -109,6 +109,22 @@ Pomiar tempa etapu 3, w katalogu `brain/` (wiersz z siecią wymaga grupy `nn`, c
 uv run --group nn python scripts/speed.py --ticks 4000 --npcs 20 50
 ```
 
+Kronika etapu 3 w PostgreSQL. Baza z Docker Compose w katalogu głównym repo (port 55432); serwer mózgów musi działać dla `run` i `resume`:
+
+```
+docker compose up -d
+```
+
+```
+& "$env:JAVA_HOME\bin\java" -jar world\world-history\target\world-history.jar run --config config/stage-3.yaml --ticks 2500 --save-every 1000
+```
+
+```
+& "$env:JAVA_HOME\bin\java" -jar world\world-history\target\world-history.jar resume --save 2 --ticks 500
+```
+
+Pytania do kroniki: `runs`, `npc --run 1 --npc 20`, `year --run 1 --year 0` (lata liczone od zera). Testy `world-history` potrzebują Dockera; bez niego są pomijane.
+
 Tryb pokazu etapu 2: serwer w katalogu `brain/`, okno w katalogu głównym repo. W `config/stage-2.yaml` nikt się nie starzeje przez pierwsze 150 000 tur, więc narodziny zobaczysz dopiero po rozruchu albo z `--tps 400`:
 
 ```

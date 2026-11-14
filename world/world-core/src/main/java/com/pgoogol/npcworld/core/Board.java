@@ -180,6 +180,37 @@ final class Board {
         return positions;
     }
 
+    List<Integer> timers() {
+        return Arrays.stream(timer).boxed().toList();
+    }
+
+    List<Integer> growsInto() {
+        return Arrays.stream(growsInto).map(type -> type == null ? -1 : type.ordinal()).toList();
+    }
+
+    List<Integer> works() {
+        return Arrays.stream(work).boxed().toList();
+    }
+
+    /** Stage 3: a board exactly as saved in a {@link WorldState}. */
+    static Board restore(int width, int height, WorldState state) {
+        int size = width * height;
+        if (state.cells().size() != size || state.timers().size() != size || state.growsInto().size() != size
+                || state.amounts().size() != size || state.work().size() != size) {
+            throw new IllegalArgumentException("Saved board does not match " + width + "x" + height);
+        }
+        Board board = new Board(width, height);
+        for (int index = 0; index < size; index++) {
+            board.cells[index] = state.cells().get(index);
+            board.timer[index] = state.timers().get(index);
+            int next = state.growsInto().get(index);
+            board.growsInto[index] = next < 0 ? null : CellType.values()[next];
+            board.amount[index] = state.amounts().get(index);
+            board.work[index] = state.work().get(index);
+        }
+        return board;
+    }
+
     /** A cell an NPC can stand on without being hurt. */
     boolean isSafe(int x, int y) {
         CellType cell = get(x, y);

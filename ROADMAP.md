@@ -6,7 +6,7 @@ Każdy etap kończy się czymś, co widać w oknie albo na wykresie. Etapy 1 i 2
 |---|---|---|---|
 | 1 | Mała osada | 5 postaci, plansza 20×20 | Ukończony |
 | 2 | Wspólna wiedza | 12 postaci, kolejne pokolenia | Ukończony |
-| 3 | Tworzenie świata | 20–50 postaci, plansza 64×64, pory roku | Następny |
+| 3 | Tworzenie świata | 20–50 postaci, plansza 64×64, pory roku | W toku (kroki 3.1–3.8 gotowe) |
 | 4 | Przepisywanie reguł | jak w etapie 3 | Planowany |
 | 5 | Relacje między osadami | 3–5 osad | Planowany |
 | 6 | Rywalizacja | wiele osad | Planowany |

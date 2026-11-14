@@ -1,6 +1,6 @@
 # Etap 3: Tworzenie świata
 
-Status: w toku. Kroki są do wykonania po kolei, parametry stroimy w trakcie.
+Status: w toku. Kroki 3.1–3.8 są gotowe; następny jest 3.9 (sieć na świecie etapu 2).
 
 ## Cel
 
@@ -114,7 +114,7 @@ Pora roku jest krótsza niż w specyfikacji wstępnej (500 zamiast 1000 tur), bo
 
   *Gotowe, gdy:* znamy tempo i wiemy, ile trwa rok symulacji. Jeśli rok trwa dłużej niż 20 sekund, krok kończy się planem przyspieszenia (większe paczki, kilka światów naraz), zanim ruszy uczenie.
 
-- [ ] **3.8 Kronika i zapis stanu.** Moduł `world-history`, schemat Flyway, zapis zdarzeń w tle, zapis i wczytanie stanu świata.
+- [x] **3.8 Kronika i zapis stanu.** Moduł `world-history`, schemat Flyway, zapis zdarzeń w tle, zapis i wczytanie stanu świata.
 
   *Gotowe, gdy:* wczytany zapis daje dalej ten sam przebieg co oryginał, a kronikę da się odpytać o historię jednej postaci i jednego roku.
 
@@ -187,6 +187,14 @@ Plansza 64×64, 4000 tur na pomiar, jeden wątek po stronie mózgów. Losowe ruc
 - **Scenariusz jest wolny (20–24 s na rok)** przez przeszukiwanie mapy w Pythonie co turę. Służy tylko jako dowód, więc go nie przyspieszam.
 
 Gdyby uczenie w kroku 3.11 potrzebowało więcej lat symulacji, pierwszym krokiem jest kilka światów w jednym zapytaniu `Step`: koszt transportu rozłoży się na kilka osad, a świat ma zapas kilkunastokrotny.
+
+### 3.8 Kronika i zapis stanu
+
+- **Zapis stanu.** `World.exportState()` zwraca pełny stan świata jako zwykły rekord (`WorldState`): planszę z licznikami wzrostu, postacie, zmarłych czekających na ostatni widok i stan generatora losowego. `World.restore` buduje z niego świat, który dalej liczy dokładnie tak samo. Sprawdzają to testy w `world-core` (700 tur z narodzinami, zgonami i zimami) i w `world-history` (zapis przez bazę i powrót).
+- **Kronika.** Zdarzenia świata (zgony, narodziny, starość, pory roku, siew, zbiory, budowy) trafiają do tabeli `event` partiami w osobnym wątku. Zapis stanu trafia do `world_save` jako JSON.
+- **Pytania do kroniki.** `npc --run R --npc N` wypisuje historię jednej postaci, `year --run R --year Y` liczy, co wydarzyło się w roku. W próbie na scenariuszu rok 0 miał 8 narodzin, 9 śmierci ze starości, 9 zasiewów, 8 schronień i 4 magazyny.
+- **Wczytanie zapisu działa jak w grze.** `resume --save ID` kasuje z kroniki wszystko, co przebieg zapisał po turze zapisu, i liczy dalej od niej.
+- **Mózgi zapisują się same.** Zapis obejmuje świat, a nie pamięć mózgów. Wczytany świat z tymi samymi decyzjami daje ten sam przebieg; scenariusz z kroku 3.6 trzyma pamięć w procesie serwera, więc po wznowieniu decyduje trochę inaczej (w próbie 19 postaci zamiast 21 po 500 turach).
 
 ## Kryteria ukończenia etapu
 
