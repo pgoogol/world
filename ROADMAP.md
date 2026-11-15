@@ -6,7 +6,7 @@ Każdy etap kończy się czymś, co widać w oknie albo na wykresie. Etapy 1 i 2
 |---|---|---|---|
 | 1 | Mała osada | 5 postaci, plansza 20×20 | Ukończony |
 | 2 | Wspólna wiedza | 12 postaci, kolejne pokolenia | Ukończony |
-| 3 | Tworzenie świata | 20–50 postaci, plansza 64×64, pory roku | W toku (kroki 3.1–3.8 gotowe) |
+| 3 | Tworzenie świata | 20–50 postaci, plansza 64×64, pory roku | W toku: kroki 3.1–3.12 gotowe, odbiór negatywny |
 | 4 | Przepisywanie reguł | jak w etapie 3 | Planowany |
 | 5 | Relacje między osadami | 3–5 osad | Planowany |
 | 6 | Rywalizacja | wiele osad | Planowany |
@@ -81,6 +81,19 @@ Postacie zmieniają świat, żeby przetrwać trudniejsze warunki.
 - **Gotowe, gdy:** osada przeżywa zimę dzięki polom i zapasom, a jej wersja bez budowania wymiera.
 
 Plan z krokami: [docs/stage-3.md](docs/stage-3.md). Najważniejsze ustalenia planu: śmierć staje się ostateczna, osada ma jedną sieć zamiast tablicy na postać, a przed uczeniem osada ze scenariusza napisanego ręcznie dowodzi, że zimę da się przeżyć.
+
+**Odbiór (seed 42):** etap nie jest odebrany.
+
+| Osada | Wynik na docelowej konfiguracji |
+|---|---|
+| Scenariusz z samych umiejętności | przeżywa 5 zim, 22 postacie po pięciu latach |
+| Ten sam scenariusz bez budowania | wymiera w turze 1600 |
+| Sieć PPO po programie nauczania | wymiera w pierwszej zimie, w turze 1801 |
+| Sieć PPO bez budowania | wymiera w turze 1600 |
+
+Sieć sprawdzona na świecie etapu 2 dochodzi do 1990–2000 tur między upadkami przy poziomie dorosłych 434. Na świecie etapu 3 uczy się w programie, w którym scenariusz prowadzi osadę coraz krócej. W połowie ostatniego etapu, już bez scenariusza, osada sama budowała do 9 magazynów, wchodziła w zimę z 81–96 porcjami i przeżywała pierwszą zimę w 85% epizodów, choć świat nie nagradza ani sadzenia, ani magazynowania. Potem uczenie się załamało i końcowa sieć tego nie umie. Kolejne kroki opisuje [docs/stage-3.md](docs/stage-3.md), sekcja „Co dalej po odbiorze”.
+
+![Okno trybu pokazu w etapie 3](docs/img/stage-3-show.png)
 
 ## Etap 4: Przepisywanie reguł
 

@@ -44,10 +44,39 @@ def build_tuning(config: BrainConfig):
     raise ValueError(f"Unknown tuning variant: {config.tuning!r}")
 
 
-def build_group(config: BrainConfig, mode: str = "train", data_dir: Path | None = None, fresh: bool = False) -> BrainGroup:
-    """`mode="show"` loads what was learned and neither learns nor saves. `fresh` ignores saved tables."""
+def network_path(config: BrainConfig, data_dir: Path | None = None) -> Path:
+    directory = data_dir if data_dir is not None else BRAIN_DIR / config.data_dir
+    return directory / "network.pt"
+
+
+def build_group(config: BrainConfig, mode: str = "train", data_dir: Path | None = None, fresh: bool = False,
+                build: bool = True) -> BrainGroup:
+    """`mode="show"` loads what was learned and neither learns nor saves. `fresh` ignores saved tables.
+
+    `build=False` is the control settlement of stage 3: the network without planting, storing and building.
+    """
+    if config.kind == "network":
+        if config.network is None:
+            raise ValueError("kind 'network' needs a brain.network section in the config")
+        # PyTorch is an optional dependency group, so it is imported only when a network is asked for.
+        from brain.settlement import NetworkSettlement
+
+        learning = mode == "train"
+        return NetworkSettlement(config, learning=learning, save_path=network_path(config, data_dir),
+                                 build=build, load=not fresh or not learning)
     if config.kind == "random":
         return BrainGroup(lambda npc_id: RandomBrain(npc_rng(config.seed, npc_id)))
+    if config.kind == "skills-scripted":
+        if config.scenario is None:
+            raise ValueError("kind 'skills-scripted' needs a brain.scripted section in the config")
+        from brain.skill_script import SkillScriptSettlement
+
+        network = config.network
+        return SkillScriptSettlement(
+            dataclasses.replace(config.scenario, build=config.scenario.build and build), config.seed,
+            inventory_size=network.inventory_size if network else 4,
+            board=(network.board_width, network.board_height) if network else (64, 64),
+            food_retry_ticks=network.food_retry_ticks if network else 60)
     if config.kind == "scripted":
         if config.scenario is None:
             raise ValueError("kind 'scripted' needs a brain.scripted section in the config")
@@ -94,7 +123,7 @@ def start_server(group: BrainGroup, address: str) -> tuple[grpc.Server, int]:
 def main() -> None:
     parser = argparse.ArgumentParser(description="NPC brains server")
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
-    parser.add_argument("--kind", choices=["random", "qlearning", "scripted"], help="overrides brain.kind from the config")
+    parser.add_argument("--kind", choices=["random", "qlearning", "scripted", "skills-scripted", "network"], help="overrides brain.kind from the config")
     parser.add_argument("--tuning", choices=["self", "fixed"], help="overrides brain.tuning from the config")
     parser.add_argument("--mode", choices=["train", "show"], default="train",
                         help="show: load saved tables, minimal epsilon, no learning and no saving")

@@ -2,6 +2,7 @@ package com.pgoogol.npcworld.view;
 
 import com.pgoogol.npcworld.core.CellType;
 import com.pgoogol.npcworld.core.NpcSnapshot;
+import com.pgoogol.npcworld.core.Season;
 import com.pgoogol.npcworld.core.WorldSnapshot;
 import javafx.geometry.VPos;
 import javafx.scene.canvas.GraphicsContext;
@@ -13,9 +14,16 @@ import javafx.scene.text.TextAlignment;
 /** Draws a world snapshot on a canvas. Reads the snapshot only. */
 final class BoardPainter {
 
+    /** Cell size on small boards (stages 1 and 2). */
     static final int CELL = 30;
+    /** The board never grows beyond this many pixels: a 64x64 board gets smaller cells. */
+    static final int MAX_BOARD_PIXELS = 900;
 
     private static final Color EMPTY = Color.web("#f3efe6");
+    private static final Color EMPTY_AUTUMN = Color.web("#f1e6d0");
+    private static final Color EMPTY_WINTER = Color.web("#e8eef5");
+    private static final Color CARRIED_FOOD = Color.web("#9be07f");
+    private static final Color CARRIED_WOOD = Color.web("#c79a63");
     private static final Color GRID = Color.web("#ddd6c8");
     private static final Color WALL = Color.web("#4a4a4a");
     private static final Color FOOD = Color.web("#5aa845");
@@ -48,10 +56,28 @@ final class BoardPainter {
         return NPC_COLORS[id % NPC_COLORS.length];
     }
 
+    /** Pixels per cell for a board of the given size. */
+    static int cellSize(int width, int height) {
+        return Math.max(4, Math.min(CELL, MAX_BOARD_PIXELS / Math.max(width, height)));
+    }
+
+    /** Empty ground tells the season: warm in autumn, pale in winter. */
+    static Color groundColor(Season season) {
+        if (season == Season.WINTER) {
+            return EMPTY_WINTER;
+        }
+        return season == Season.AUTUMN ? EMPTY_AUTUMN : EMPTY;
+    }
+
     static void paint(GraphicsContext graphics, WorldSnapshot snapshot) {
+        int cell = cellSize(snapshot.width(), snapshot.height());
+        if (cell != CELL) {
+            paintSmall(graphics, snapshot, cell);
+            return;
+        }
         for (int y = 0; y < snapshot.height(); y++) {
             for (int x = 0; x < snapshot.width(); x++) {
-                graphics.setFill(colorOf(snapshot.cellAt(x, y)));
+                graphics.setFill(colorOf(snapshot.cellAt(x, y), snapshot.season()));
                 graphics.fillRect(x * CELL, y * CELL, CELL, CELL);
                 graphics.setStroke(GRID);
                 graphics.strokeRect(x * CELL + 0.5, y * CELL + 0.5, CELL - 1, CELL - 1);
@@ -78,6 +104,47 @@ final class BoardPainter {
             graphics.setFill(Color.WHITE);
             graphics.setFont(newborn ? SMALL_ID_FONT : ID_FONT);
             graphics.fillText(Integer.toString(npc.id()), centreX(npc), centreY(npc));
+        }
+    }
+
+    /**
+     * Stage 3: a big board with small cells. Buildings show what they hold (food in a store, wood on a
+     * site), NPCs are dots with a mark for what they carry: green for food, brown for wood.
+     */
+    private static void paintSmall(GraphicsContext graphics, WorldSnapshot snapshot, int cell) {
+        for (int y = 0; y < snapshot.height(); y++) {
+            for (int x = 0; x < snapshot.width(); x++) {
+                graphics.setFill(colorOf(snapshot.cellAt(x, y), snapshot.season()));
+                graphics.fillRect(x * cell, y * cell, cell, cell);
+            }
+        }
+        graphics.setTextAlign(TextAlignment.CENTER);
+        graphics.setTextBaseline(VPos.CENTER);
+        graphics.setFont(Font.font("System", FontWeight.BOLD, Math.max(7, cell * 0.6)));
+        graphics.setFill(Color.WHITE);
+        for (int y = 0; y < snapshot.height(); y++) {
+            for (int x = 0; x < snapshot.width(); x++) {
+                CellType type = snapshot.cellAt(x, y);
+                if (type == CellType.STORE || type == CellType.SITE_SHELTER || type == CellType.SITE_STORE) {
+                    graphics.fillText(Integer.toString(snapshot.amountAt(x, y)), x * cell + cell / 2.0,
+                            y * cell + cell / 2.0);
+                }
+            }
+        }
+        double radius = cell * 0.38;
+        for (NpcSnapshot npc : snapshot.npcs()) {
+            // NPCs often share a cell (a shelter holds four): a small offset per id keeps them apart.
+            double angle = 2 * Math.PI * (npc.id() % 4) / 4;
+            double x = npc.position().x() * cell + cell / 2.0 + 0.2 * cell * Math.cos(angle);
+            double y = npc.position().y() * cell + cell / 2.0 + 0.2 * cell * Math.sin(angle);
+            graphics.setFill(npcColor(npc.id()));
+            graphics.fillOval(x - radius, y - radius, 2 * radius, 2 * radius);
+            graphics.setStroke(Color.WHITE);
+            graphics.strokeOval(x - radius, y - radius, 2 * radius, 2 * radius);
+            if (npc.carriedFood() + npc.carriedWood() > 0) {
+                graphics.setFill(npc.carriedWood() > npc.carriedFood() ? CARRIED_WOOD : CARRIED_FOOD);
+                graphics.fillOval(x - radius / 2, y - radius / 2, radius, radius);
+            }
         }
     }
 
@@ -116,9 +183,9 @@ final class BoardPainter {
         return npc.position().y() * CELL + CELL / 2.0 + 4 * Math.sin(angle);
     }
 
-    private static Color colorOf(CellType cell) {
+    private static Color colorOf(CellType cell, Season season) {
         return switch (cell) {
-            case EMPTY -> EMPTY;
+            case EMPTY -> groundColor(season);
             case WALL -> WALL;
             case FOOD -> FOOD;
             case WATER -> WATER;

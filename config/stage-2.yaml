@@ -54,6 +54,20 @@ brain:
     observe_weight: 0.5     # learning rate multiplier for a neighbour's transition
     map: true               # NPCs remember where water and food are and swap maps on contact
     map_food_retry_ticks: 50  # a food place seen empty counts as worth visiting again after this long
+  # Step 3.9: the settlement network of stage 3, checked on the stage 2 world (--variant network).
+  network:
+    choices: actions        # the six moves plus "walk to a known place", as the Q-learning brain had
+    hidden: 128
+    gamma: 0.99
+    gae_lambda: 0.95
+    learning_rate: 0.0003
+    clip: 0.2
+    epochs: 4
+    minibatch: 512
+    entropy: 0.01
+    rollout_ticks: 128      # ticks of experience of the whole settlement per PPO update
+    food_retry_ticks: 50
+    age_scale: 60000
 
 training:
   ticks: 400000             # warm-up plus about four lifespans

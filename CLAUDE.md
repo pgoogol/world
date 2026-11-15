@@ -13,8 +13,8 @@ Przeczytaj je przed pierwszą zmianą w sesji:
 
 ## Jak pracujemy
 
-- Bieżący krok to pierwszy nieodhaczony krok w specyfikacji bieżącego etapu (etapy 1 i 2 są ukończone, bieżący to etap 3). Rób jeden krok naraz i kończ go dopiero, gdy spełnia warunek „Gotowe, gdy”.
-- Nie dokładaj niczego z późniejszych etapów (PyTorch, baza danych, Spring Boot, model językowy, Unity), dopóki `ROADMAP.md` ich nie odblokuje.
+- Bieżący krok to pierwszy nieodhaczony krok w specyfikacji bieżącego etapu (etapy 1 i 2 są ukończone, bieżący to etap 3; jego odbiór, krok 3.13, wypadł negatywnie i czeka na decyzję z `docs/stage-3.md`). Rób jeden krok naraz i kończ go dopiero, gdy spełnia warunek „Gotowe, gdy”.
+- Nie dokładaj niczego z późniejszych etapów (model językowy, Unity), dopóki `ROADMAP.md` ich nie odblokuje.
 - Gdy specyfikacja czegoś nie rozstrzyga, zajrzyj do sekcji „Do decyzji” w specyfikacji etapu. Przyjmij wartość domyślną i opisz wybór w podsumowaniu kroku.
 - Po każdym kroku uruchom testy obu części i odhacz krok. Nową decyzję albo zmianę kontraktu dopisz do `docs/ARCHITECTURE.md`.
 
@@ -103,7 +103,42 @@ uv run python scripts/train.py --variant scripted-nobuild --config ../config/sta
 uv run python scripts/winters.py --runs s3-scripted s3-scripted-nobuild
 ```
 
-Pomiar tempa etapu 3, w katalogu `brain/` (wiersz z siecią wymaga grupy `nn`, czyli PyTorcha):
+Sieć PPO (kroki 3.9–3.11) wymaga grupy `nn`, czyli PyTorcha, także w testach: `uv run --group nn pytest`. Bez niej testy sieci są pomijane. Sieć na świecie etapu 2 i pomiar pokoleń, w katalogu `brain/`:
+
+```
+uv run --group nn python scripts/train.py --variant network --config ../config/stage-2.yaml --name s2-network --episodes
+uv run python scripts/generations.py --baseline s2-random --runs s2-all s2-network
+```
+
+Scenariusz z samych umiejętności (krok 3.10), z budowaniem i bez:
+
+```
+uv run python scripts/train.py --variant skills-scripted --config ../config/stage-3.yaml --name s3-skills-scripted --settlement
+uv run python scripts/train.py --variant skills-scripted-nobuild --config ../config/stage-3.yaml --name s3-skills-scripted-nobuild --settlement
+```
+
+Uczenie sieci na świecie etapu 3 w epizodach (krok 3.11). `--episode-ticks` startuje nowy świat, gdy osada wymrze albo epizod się skończy, i zapisuje `out/<nazwa>-curve.csv`. `--set` uruchamia przebieg na zmienionej kopii konfiguracji (krótsze pory roku, inny port, żeby puścić kilka przebiegów naraz). `--resume` z `--data-dir` kontynuuje zapisaną sieć:
+
+```
+uv run --group nn python scripts/train.py --variant network --config ../config/stage-3.yaml --name s3-network --ticks 600000 --episode-ticks 4000 --set seasons.season_ticks=250
+uv run --group nn python scripts/train.py --variant network-nobuild --config ../config/stage-3.yaml --name s3-network-nobuild --ticks 600000 --episode-ticks 4000 --set seasons.season_ticks=250 --set brain.address=localhost:50061
+uv run python scripts/curve.py --runs s3-network s3-network-nobuild
+```
+
+Program nauczania z rozbiegiem (krok 3.11): do tury W osadą kieruje scenariusz z kroku 3.10, potem sieć; W maleje z etapu na etap. Każdy etap to jeden przebieg `train.py` z `--resume`, a krzywe lądują w `out/<nazwa>-w<W>-curve.csv`. Program startuje od sieci, która już umie przeżyć (`--resume` bierze `brain/data/<nazwa>/network.pt`):
+
+```
+uv run --group nn python scripts/curriculum.py --name s3-l --resume --warmups 1400 1000 500 250 0 --ticks 600000 --set brain.network.entropy=0.01 --set brain.network.skill_ticks=16
+```
+
+Pomiar wytrenowanej sieci na pięciu latach, bez uczenia:
+
+```
+uv run --group nn python scripts/train.py --variant network --config ../config/stage-3.yaml --name s3-network --evaluate --settlement
+uv run python scripts/winters.py --runs s3-network-eval
+```
+
+Pomiar tempa etapu 3, w katalogu `brain/` (wiersz z siecią wymaga grupy `nn`):
 
 ```
 uv run --group nn python scripts/speed.py --ticks 4000 --npcs 20 50
@@ -124,6 +159,22 @@ docker compose up -d
 ```
 
 Pytania do kroniki: `runs`, `npc --run 1 --npc 20`, `year --run 1 --year 0` (lata liczone od zera). Testy `world-history` potrzebują Dockera; bez niego są pomijane.
+
+Okno na zapisanym świecie (serwer mózgów musi działać; okno niczego w kronice nie zmienia):
+
+```
+& "$env:JAVA_HOME\bin\java" -jar world\world-history\target\world-history.jar show --save 2 --tps 50
+```
+
+Tryb pokazu etapu 3: serwer w katalogu `brain/` (scenariusz z umiejętności albo `--kind network --data-dir data/<nazwa>` dla wytrenowanej sieci), okno w katalogu głównym repo:
+
+```
+uv run python -m brain.server --config ../config/stage-3.yaml --kind skills-scripted --mode show
+```
+
+```
+& "$env:JAVA_HOME\bin\java" -jar world\world-view\target\world-view.jar --config config\stage-3.yaml --tps 100
+```
 
 Tryb pokazu etapu 2: serwer w katalogu `brain/`, okno w katalogu głównym repo. W `config/stage-2.yaml` nikt się nie starzeje przez pierwsze 150 000 tur, więc narodziny zobaczysz dopiero po rozruchu albo z `--tps 400`:
 

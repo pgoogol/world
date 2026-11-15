@@ -6,8 +6,11 @@ import com.pgoogol.npcworld.app.ConfigLoader;
 import com.pgoogol.npcworld.brain.GrpcBrain;
 import com.pgoogol.npcworld.core.Simulation;
 import com.pgoogol.npcworld.core.World;
+import com.pgoogol.npcworld.view.ShowMain;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -21,6 +24,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * <pre>
  * run    --config config/stage-3.yaml [--ticks N] [--save-every N]
  * resume --save ID [--ticks N] [--save-every N]
+ * show   --save ID [--tps N]          (opens the window on the saved world; nothing is written)
  * runs
  * npc    --run ID --npc ID
  * year   --run ID --year N            (years count from 0)
@@ -46,7 +50,7 @@ public class HistoryMain implements ApplicationRunner {
     public void run(ApplicationArguments arguments) throws Exception {
         String[] raw = arguments.getSourceArgs();
         if (raw.length == 0) {
-            System.out.println("Commands: run, resume, runs, npc, year (see HistoryMain)");
+            System.out.println("Commands: run, resume, show, runs, npc, year (see HistoryMain)");
             return;
         }
         Args args = new Args(Arrays.copyOfRange(raw, 1, raw.length));
@@ -65,6 +69,19 @@ public class HistoryMain implements ApplicationRunner {
                 System.out.printf("Resuming run %d from tick %d%n", run.id(), save.tick());
                 chronicle.rewind(run.id(), save.tick());
                 simulate(run.id(), config, World.restore(config.world(), save.state()), args);
+            }
+            case "show" -> {
+                long saveId = Long.parseLong(args.get("save").orElseThrow(() -> new IllegalArgumentException("--save ID")));
+                Chronicle.Save save = chronicle.load(saveId).orElseThrow(() -> new IllegalArgumentException("No save " + saveId));
+                Chronicle.Run run = chronicle.run(save.runId()).orElseThrow();
+                AppConfig config = ConfigLoader.load(Path.of(run.configPath()));
+                System.out.printf("Showing run %d from tick %d%n", run.id(), save.tick());
+                List<String> viewArgs = new ArrayList<>(List.of("--config", run.configPath()));
+                for (String name : List.of("tps", "snapshot", "snapshot-tick")) {
+                    args.get(name).ifPresent(value -> viewArgs.addAll(List.of("--" + name, value)));
+                }
+                // The window only watches: the chronicle keeps the run as it was saved.
+                ShowMain.show(World.restore(config.world(), save.state()), viewArgs.toArray(String[]::new));
             }
             case "runs" -> chronicle.runs().forEach(run -> System.out.printf("run %d: %s, seed %d%n",
                     run.id(), run.configPath(), run.seed()));

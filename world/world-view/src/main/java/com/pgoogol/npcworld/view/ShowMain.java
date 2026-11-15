@@ -1,5 +1,8 @@
 package com.pgoogol.npcworld.view;
 
+import com.pgoogol.npcworld.core.World;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import javafx.application.Application;
 
 /**
@@ -15,7 +18,22 @@ public final class ShowMain {
     private ShowMain() {
     }
 
+    private static final AtomicReference<World> PRELOADED = new AtomicReference<>();
+
     public static void main(String[] args) {
         Application.launch(ShowApp.class, args);
+    }
+
+    /**
+     * Opens the window on a world that already exists, for example a save loaded from the chronicle.
+     * {@code args} are the usual ones; {@code --config} must name the configuration the world was made with.
+     */
+    public static void show(World world, String[] args) {
+        PRELOADED.set(world);
+        Application.launch(ShowApp.class, args);
+    }
+
+    static Optional<World> takePreloaded() {
+        return Optional.ofNullable(PRELOADED.getAndSet(null));
     }
 }

@@ -1,6 +1,6 @@
 # Etap 3: Tworzenie świata
 
-Status: w toku. Kroki 3.1–3.8 są gotowe; następny jest 3.9 (sieć na świecie etapu 2).
+Status: w toku, odbiór negatywny. Kroki 3.1–3.12 są gotowe. Odbiór (3.13) pokazał, że wytrenowana osada nie przeżywa pięciu zim. Etap czeka na decyzję z sekcji „Co dalej po odbiorze”.
 
 ## Cel
 
@@ -36,7 +36,7 @@ Zasady etapów 1 i 2 obowiązują dalej. Każda nowa zasada ma przełącznik alb
 
 - **Sieć zamiast tablic.** Jedna mała sieć na osadę w PyTorchu, trenowana PPO. Wszystkie postacie osady korzystają z tej samej sieci i każda dokłada do niej swoje doświadczenia. To odpowiednik dziedziczenia z etapu 2: noworodek od razu ma wiedzę osady.
 - **Obserwacja dla sieci.** Wycinek planszy wokół postaci (większy niż 3×3), potrzeby, ekwipunek, pora roku i tura w roku, wiek oraz cechy z mapy odkryć: odległość i kierunek do najbliższego znanego miejsca każdego typu.
-- **Umiejętności złożone.** Sieć wybiera umiejętność, a mózg zamienia ją na pojedyncze ruchy kontraktu, tak jak „idź do znanego miejsca” w etapie 2. Startowy zestaw: idź do wody, idź do jedzenia, idź po drewno, zanieś do magazynu, weź z magazynu, zasadź tutaj, buduj tutaj, schroń się, odkrywaj.
+- **Umiejętności złożone.** Sieć wybiera umiejętność, a mózg zamienia ją na pojedyncze ruchy kontraktu, tak jak „idź do znanego miejsca” w etapie 2. Zestaw z kroku 3.10 ma jedenaście umiejętności: pij, jedz, zbieraj jedzenie, zbieraj drewno, zanieś do magazynu, weź z magazynu, zasadź, buduj schronienie, buduj magazyn, schroń się, odkrywaj. Postać trzyma się wybranej umiejętności przez 8 tur, chyba że wcześniej przestanie ona być możliwa.
 - **Mapa odkryć** zostaje pamięcią pojedynczej postaci i wymienia się przy kontakcie, jak w etapie 2. Obejmuje nowe typy miejsc.
 - **Tablice Q** zostają w kodzie dla etapów 1 i 2.
 
@@ -118,19 +118,19 @@ Pora roku jest krótsza niż w specyfikacji wstępnej (500 zamiast 1000 tur), bo
 
   *Gotowe, gdy:* wczytany zapis daje dalej ten sam przebieg co oryginał, a kronikę da się odpytać o historię jednej postaci i jednego roku.
 
-- [ ] **3.9 Sieć na świecie etapu 2.** PyTorch, PPO, jedna sieć na osadę, uczenie na świecie etapu 2 bez nowych zasad.
+- [x] **3.9 Sieć na świecie etapu 2.** PyTorch, PPO, jedna sieć na osadę, uczenie na świecie etapu 2 bez nowych zasad.
 
   *Gotowe, gdy:* osada z siecią dochodzi do poziomu dorosłych z etapu 2 (434 tury między upadkami). Ten krok sprawdza sieć na zadaniu, które już umiemy zmierzyć.
 
-- [ ] **3.10 Umiejętności złożone.** Zestaw umiejętności, ich zamiana na ruchy, wybór umiejętności przez sieć, mapa z nowymi typami miejsc.
+- [x] **3.10 Umiejętności złożone.** Zestaw umiejętności, ich zamiana na ruchy, wybór umiejętności przez sieć, mapa z nowymi typami miejsc.
 
   *Gotowe, gdy:* każda umiejętność ma test, a postać ze scenariuszem zbudowanym z samych umiejętności przeżywa zimę.
 
-- [ ] **3.11 Uczenie z opóźnioną nagrodą.** PPO na pełnym świecie etapu 3, najpierw na krótszych porach roku, potem na docelowych.
+- [x] **3.11 Uczenie z opóźnioną nagrodą.** PPO na pełnym świecie etapu 3, najpierw na krótszych porach roku, potem na docelowych.
 
   *Gotowe, gdy:* krzywa uczenia pokazuje, że osada zaczyna sadzić i magazynować bez nagrody za te czynności.
 
-- [ ] **3.12 Widok.** Pory roku, budowle, ekwipunek, liczba mieszkańców, zapas w magazynie, wczytanie zapisu.
+- [x] **3.12 Widok.** Pory roku, budowle, ekwipunek, liczba mieszkańców, zapas w magazynie, wczytanie zapisu.
 
   *Gotowe, gdy:* w oknie widać cykl roku: zbiory jesienią, schronienia zimą, zasiewy wiosną.
 
@@ -196,6 +196,126 @@ Gdyby uczenie w kroku 3.11 potrzebowało więcej lat symulacji, pierwszym krokie
 - **Wczytanie zapisu działa jak w grze.** `resume --save ID` kasuje z kroniki wszystko, co przebieg zapisał po turze zapisu, i liczy dalej od niej.
 - **Mózgi zapisują się same.** Zapis obejmuje świat, a nie pamięć mózgów. Wczytany świat z tymi samymi decyzjami daje ten sam przebieg; scenariusz z kroku 3.6 trzyma pamięć w procesie serwera, więc po wznowieniu decyduje trochę inaczej (w próbie 19 postaci zamiast 21 po 500 turach).
 
+### 3.9 Sieć na świecie etapu 2
+
+Seed 42, świat z `config/stage-2.yaml` bez zmian, 400 000 tur, jedna sieć na 12 postaci. Sieć wybiera spośród tych samych siedmiu ruchów co mózg z tablicą Q (sześć ruchów kontraktu i „idź do znanego miejsca”), a na wejściu dostaje pola 3×3, potrzeby i kierunki z mapy miejsc.
+
+| Osada | Założyciele | Pok. 1 | Pok. 2 | Pok. 3 | Pok. 4 |
+|---|---|---|---|---|---|
+| Tablice Q z wymianą wiedzy (etap 2) | 210 | 388 | 435 | 518 | 459 |
+| Jedna sieć z PPO | 1392 | 1994 | 1993 | 2000 | 2000 |
+
+Liczby to średnia długość życia dorosłych w turach, przy poziomie dorosłych 434 i limicie epizodu 2000.
+
+- **Sieć przekracza poziom dorosłych wielokrotnie.** Od pierwszego pokolenia prawie każdy epizod dorosłego kończy się na limicie 2000 tur, a nie upadkiem.
+- **Noworodek nie zaczyna od zera.** Korzysta z tej samej sieci co reszta osady, więc już pierwsze pięć epizodów noworodka ma średnią powyżej poziomu dorosłych. Miara z etapu 2 pokazuje to jako 10 000 tur życia, bo epizod trwa tu 2000 tur i szybciej zmierzyć się tego nie da.
+- **Tempo: 388 tur na sekundę** razem z uczeniem, czyli 400 000 tur w około 17 minut.
+- **Powtarzalność:** dwa przebiegi z tym samym seedem dały identyczne pliki statystyk i dzienniki epizodów (`s2-network` i `s2-network-repeat`).
+- **PyTorch 2.15 ma paczkę dla Pythona 3.14,** więc mózgi zostają na 3.14.
+
+### 3.10 Umiejętności złożone
+
+Każda z jedenastu umiejętności ma test zamiany na ruch i test maski (`brain/tests/test_skills.py`). Dowodem, że zestaw wystarcza, jest scenariusz zbudowany z samych umiejętności (`--variant skills-scripted`). Każda postać decyduje w nim sama, z własnej obserwacji i własnej mapy miejsc, bez wspólnej pamięci osady z kroku 3.6.
+
+Seed 42, plansza 64×64, 20 założycieli, pięć lat:
+
+| Zima | Postacie przed zimą | Po zimie | Jedzenie w magazynach | Schronienia | Magazyny |
+|---|---|---|---|---|---|
+| 1 | 19 | 19 | 371 | 9 | 4 |
+| 2 | 24 | 23 | 382 | 10 | 4 |
+| 3 | 24 | 24 | 378 | 10 | 4 |
+| 4 | 27 | 26 | 373 | 10 | 4 |
+| 5 | 21 | 22 | 386 | 10 | 4 |
+
+- **Scenariusz z samych umiejętności przeżywa pięć zim** i kończy z 22 postaciami. Ten sam scenariusz bez budowania wymiera w turze 1600.
+- **Trzy poprawki, zanim przeżył pierwszą zimę.** W pierwszej wersji zimę przeżyło 5 z 19 postaci. Postacie chodziły po jedzenie do magazynu przez mróz przy każdym posiłku, więc teraz biorą do schronienia trzy porcje. Schronienia stały przy różnych wodach, daleko od magazynów, więc domem jest najbliższy magazyn. Noworodek rodzi się przy magazynie z pustą mapą i zamarzał, zanim znalazł schronienie; schronienia w zasięgu wzroku od magazynu to rozwiązują.
+- **Tempo: 116–290 tur na sekundę,** szybciej niż scenariusz z kroku 3.6 (82–102), bo umiejętności nie szukają drogi po całej mapie.
+
+### 3.11 Uczenie z opóźnioną nagrodą
+
+Seed 42, plansza 64×64, 20 założycieli, jedna sieć na osadę, uczenie w epizodach do 4000 tur. Świat nie nagradza sadzenia, magazynowania ani budowania. Razem około 5 mln tur uczenia w kilku wariantach; liczby poniżej to najlepszy z nich (`s3-c`: entropia 0,05, umiejętność trzymana 16 tur).
+
+**Pierwsza próba: krótsze pory roku.** Bez rozbiegu, od pustej sieci. Osada nauczyła się budować i siać, ale nie magazynowała.
+
+| Etap uczenia | Pory roku | Tury uczenia | Długość epizodu | Przeżyte zimy na epizod | Schronienia | Zasiane pola | Zapas na początku zimy |
+|---|---|---|---|---|---|---|---|
+| Początek | 250 | 0–60 tys. | 821 | 0,00 | 1,4 | 2,4 | 0,3 |
+| Koniec pierwszej fazy | 250 | 530–600 tys. | 891 | 0,00 | 3,5 | 3,2 | 0,1 |
+| Druga faza, najlepszy odcinek | 250 | 1,45–1,53 mln | 967 | 0,04 | 6,8 | 11,3 | 1,2 |
+| Druga faza, koniec | 250 | 1,7–1,8 mln | 954 | 0,01 | 3,4 | 13,9 | 0,3 |
+| Trzecia faza, koniec | 200 | 2,3–2,4 mln | 957 | 0,62 | 2,7 | 15,0 | 0,1 |
+| Osada kontrolna bez budowania | 250 | 350–400 tys. | 846 | 0,00 | 0 | 0 | 0 |
+
+Przy porach po 250 tur zima zaczyna się w turze 750, a wiosna w 1000. Przy porach po 200 tur rok ma 800 tur.
+
+- **Czego sieć się nauczyła.** Pić i jeść (pierwsze 20 tys. tur), budować schronienia i stać w nich zimą (od około 400 tys. tur), siać (od około 250 tys. tur). Osada kontrolna ginie zawsze około 96. tury zimy, z zimna. Osada z budowaniem dożywa 170–215. tury zimy.
+- **Na czym stanęła.** Wszystkie 17 zgonów w przebiegu diagnostycznym to głód w zimie: osada wchodzi w zimę z 16 niesionymi porcjami na 18 postaci i pustymi magazynami, choć ma ich 6. Postać w schronieniu bez jedzenia żyje około 180 tur zimy, a zima trwa 250.
+- **Krótsza zima pomaga, ale nie uczy magazynowania.** Przy porach po 200 tur osada przeżywa pierwszą zimę w 62% epizodów, bo wystarcza najeść się przed zimą. Zapas w magazynach dalej wynosi zero.
+- **Uczenie jest niestabilne.** Liczba schronień na epizod skacze między 1 a 7 w kolejnych odcinkach tego samego przebiegu. Wariant z większymi paczkami (2048 tur na aktualizację) uczył się wolniej i go przerwałem.
+- **Wybór umiejętności co turę nie działał wcale.** Przy losowej polityce postać zmieniała zamiar co turę i w 80 tys. tur nie powstało ani jedno schronienie. Dopiero trzymanie umiejętności przez 8–16 tur dało 3 schronienia na epizod już na starcie.
+- **Pory po 100 tur są za krótkie:** osada nie zdąża zbudować schronienia przed pierwszą zimą, więc nie ma się z czego uczyć.
+
+**Druga próba: program nauczania z rozbiegiem.** Pory po 500 tur, jak w docelowej konfiguracji. Do tury W każdego świata osadą kieruje scenariusz z kroku 3.10, potem sieć. Sieć niczego nie zapisuje z czasu rozbiegu, a świat i nagrody się nie zmieniają. Rozbieg liczy się raz na przebieg: świat zapamiętuje swój stan w turze W (`exportState`), mózgi swoje postacie i mapy, i każdy następny epizod startuje od tego stanu. W maleje z etapu na etap: 1400 (późna jesień), 1000 (początek jesieni), 500 (początek lata), 250 (połowa wiosny), 0. Sieć startowa to `s3-c` z pierwszej próby. Epizod trwa do 4000 tur, czyli obejmuje dwie zimy.
+
+Wartości to średnie z ostatnich 50–70 epizodów etapu, a przy W = 0 z najlepszego i z ostatniego odcinka:
+
+| Rozbieg do tury | Wariant | Przeżyte zimy na epizod | Zasiane pola | Magazyny zbudowane przez sieć | Zapas na początku ostatniej zimy |
+|---|---|---|---|---|---|
+| 1400 | L | 1,21 | 10,3 | 2,1 | 131 |
+| 1000 | L | 1,50 | 12,6 | 3,7 | 97 |
+| 500 | L | 0,77 | 29,0 | 0,8 | 46 |
+| 500 | L3 | 0,82 | 15,0 | 1,2 | 92 |
+| 250 | L2 | 1,17 | 72,0 | 1,2 | 134 |
+| 250 | L3 | 1,34 | 7,0 | 2,5 | 75 |
+| 0, najlepszy odcinek | L3 | 0,85 | 21,9 | 3,4–9,1 | 81–96 |
+| 0, koniec | L3 | 0,00 | 9,6 | 1,0 | 4 |
+| 0, koniec | L2 | 0,00 | 11,5 | 2,9 | 0 |
+
+L to własna nagroda postaci i entropia 0,01. L2 i L3 kontynuują sieć L z dłuższymi etapami (600 000 tur); L3 ma wspólną nagrodę (`team_share: 0.5`). Warianty z entropią 0,05 i ze wspólną nagrodą od pierwszego etapu (K, M) wypadły gorzej od L.
+
+- **Osada zaczyna sadzić i magazynować sama.** Przy rozbiegu do tury 1000 sieć prowadzi osadę przez cały drugi rok i wchodzi w drugą zimę z 97 porcjami w magazynach. W połowie ostatniego etapu L3, bez rozbiegu, osada sama buduje do 9 magazynów, wchodzi w zimę z 81–96 porcjami i przeżywa pierwszą zimę w 74–85% epizodów. Świat nie nagradza ani sadzenia, ani odkładania do magazynu. To spełnia warunek kroku 3.11, choć nie trwale.
+- **Uczenie jest niestabilne i to ono przesądza o wyniku.** W ostatnim etapie L3 przeżycie zimy spadło z 0,85 na epizod do zera w ciągu ostatnich 80 000 tur. Zapisuję tylko końcowe wagi, więc pomiar na pięciu latach dostaje sieć po załamaniu.
+- **Najtrudniejszy jest pierwszy plac budowy.** Przy rozbiegu do tury 250 sieć przeżywa zimę w każdym epizodzie. Bez rozbiegu przez pierwsze 100 000 tur nie postawiła ani jednego schronienia, bo nie zakłada placu sama. Rozbieg do tury 250 to dokładnie czas, w którym scenariusz zakłada pierwszy magazyn.
+- **Umiejętność musi się kończyć, gdy wykona swoją czynność.** Bez tego sieć nie uczyła się wcale: postać, która zimą poszła po jedzenie, jadła i stała przy magazynie na mrozie do końca 16 tur. Każda wyprawa kosztowała więc kilkanaście punktów energii. Głodna postać bez jedzenia zostawała w schronieniu w 64 przypadkach na 107 i umierała z głodu przy 190 porcjach w magazynach. Teraz umiejętność kończy się po pierwszej czynności innej niż krok. Wyjątkiem jest „schroń się”, bo jej czynnością jest stanie w schronieniu.
+- **Pusta sieć z rozbiegiem nie uczy się.** Sieć od zera, przejmująca osadę późną jesienią, dostaje około 250 tur na epizod i po 40 000 turach wybiera prawie losowo. Program nauczania musi zaczynać od sieci, która już umie pić, jeść i chronić się w schronieniu.
+
+Pomiar na docelowej konfiguracji (pory po 500 tur, bez rozbiegu, bez uczenia, pięć lat):
+
+| Osada | Wymiera w turze | Schronienia | Magazyny | Zapas na początku zimy |
+|---|---|---|---|---|
+| Sieć `s3-c` (pierwsza próba) | 1678 | 5 | 9 | 2 |
+| Sieć L2 (koniec programu) | 1801 | 3 | 1 | 0 |
+| Sieć L3 (koniec programu) | 1764 | 1 | 3 | 4 |
+| Sieć bez budowania | 1600 | 0 | 0 | 0 |
+| Scenariusz z umiejętności (3.10) | przeżywa 5 zim | 10 | 4 | 371–386 |
+
+Dwa pomiary tej samej sieci na tym samym seedzie dają identyczne pliki statystyk i osady.
+
+### Co dalej po odbiorze
+
+Scenariusz z kroku 3.10 przeżywa pięć zim na tych samych umiejętnościach, a sieć w trakcie uczenia przeżywała pierwszą zimę w 85% epizodów. Brakuje stabilnego uczenia i jednej czynności: założenia pierwszego placu budowy. Możliwe kroki, od najtańszego:
+
+1. **Zapis sieci po drodze i wybór najlepszej.** Przebiegi są deterministyczne, więc program L3 da się powtórzyć co do tury (około 5 godzin) z zapisem sieci co 50 epizodów i zmierzyć sieć z najlepszego odcinka. To nie rozwiąże niestabilności, ale pokaże, ile zim przeżywa najlepsza sieć.
+2. **Stabilniejsze PPO.** Krok uczenia malejący w późnych etapach i przerwanie aktualizacji przy zbyt dużej zmianie polityki (próg KL). Do sprawdzenia na tym samym programie.
+3. **Etap pośredni z rozbiegiem do tury 100,** w którym scenariusz zakłada tylko pierwszy plac. To wciąż nie jest nagroda za budowanie, ale skraca drogę do etapu bez rozbiegu.
+4. **Zmiana kryterium etapu,** na przykład przeżycie pierwszej zimy przez wytrenowaną osadę. To decyzja o zakresie projektu, nie o uczeniu.
+
+Domyślnie biorę punkty 1 i 2 razem.
+
+### 3.12 Widok
+
+Okno pokazuje planszę 64×64 w komórkach po 14 pikseli. Tło pustych pól mówi, jaka jest pora roku (jasne zimą, ciepłe jesienią), magazyny i place budowy mają liczbę (zapas, drewno), a kropka w postaci oznacza niesione jedzenie albo drewno. Obok planszy jest wykres liczby mieszkańców i zapasu w magazynach, kalendarz, podsumowanie osady i tabela postaci z ekwipunkiem.
+
+Sprawdzone na osadzie ze scenariusza z umiejętności, zrzuty w `out/stage-3-*.png`:
+
+- **Wiosna, tura 351:** 32 zasiane pola wokół magazynów, 2 schronienia i plac budowy.
+- **Jesień, tura 1351:** pola zebrane, 387 porcji w magazynach, 9 schronień.
+- **Zima, tura 1801:** 13 z 19 postaci stoi w schronieniach, zapas spada (201 porcji), dzikiego jedzenia nie ma na planszy.
+
+Zapis z kroniki otwiera polecenie `show --save ID` w `world-history.jar`. W próbie okno wystartowało z zapisu z tury 1600 i liczyło dalej od niej.
+
+![Okno trybu pokazu w etapie 3, zima](img/stage-3-show.png)
+
 ## Kryteria ukończenia etapu
 
 - Wytrenowana osada przeżywa 5 kolejnych zim: po każdej zimie żyje co najmniej połowa stanu sprzed zimy, a po pięciu latach osada nie jest mniejsza niż na starcie.
@@ -204,6 +324,19 @@ Gdyby uczenie w kroku 3.11 potrzebowało więcej lat symulacji, pierwszym krokie
 - Dwa przebiegi z tym samym seedem na tym samym komputerze dają identyczne pliki statystyk.
 - Wczytany zapis stanu daje dalej ten sam przebieg co oryginał.
 - Etapy 1 i 2 dają wyniki identyczne ze swoimi odbiorami.
+
+### Odbiór (krok 3.13)
+
+| Kryterium | Stan |
+|---|---|
+| Wytrenowana osada przeżywa 5 zim | Nie. Najlepsza końcowa sieć wymiera w pierwszej zimie, w turze 1801. W trakcie uczenia osada przeżywała pierwszą zimę w 85% epizodów. |
+| Ta sama osada bez sadzenia, magazynowania i budowania wymiera | Tak, w turze 1600. W uczeniu ginie zawsze w pierwszej zimie. |
+| Osada sadzi i magazynuje bez nagrody za te czynności | Tak w trakcie uczenia (do 9 magazynów i 96 porcji przed zimą, bez rozbiegu), nie w końcowej sieci. |
+| Ten sam seed daje identyczne pliki statystyk | Tak. Uczenie sieci na świecie etapu 2 (400 000 tur) i pomiar sieci na świecie etapu 3: pliki identyczne. |
+| Wczytany zapis daje ten sam przebieg | Tak, testy z kroku 3.8 przechodzą. Uczenie w epizodach korzysta z tego samego mechanizmu. |
+| Etapy 1 i 2 dają wyniki identyczne ze swoimi odbiorami | Tak. `self` (700 000 tur) i `s2-all` (400 000 tur z dziennikiem epizodów) co do bajta. |
+
+Etap nie jest odebrany: pierwsze kryterium nie jest spełnione, a trzecie tylko w trakcie uczenia.
 
 ## Ryzyka
 

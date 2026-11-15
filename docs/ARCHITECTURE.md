@@ -30,9 +30,10 @@ Procesy łączy gRPC na `localhost:50051`. Mózgi są serwerem. Świat jest klie
 │   ├── world-core/        plansza, postacie, zasady, tury, nagrody
 │   ├── world-brain/       klient gRPC
 │   ├── world-app/         start bez okna: konfiguracja, pętla symulacji, statystyki
-│   └── world-view/        okno JavaFX
+│   ├── world-view/        okno JavaFX
+│   └── world-history/     kronika i zapis stanu w PostgreSQL (Spring Boot, Flyway)
 ├── brain/                 Python 3.14, uv
-│   ├── src/brain/         serwer gRPC i Q-learning
+│   ├── src/brain/         serwer gRPC, Q-learning, sieć PPO i umiejętności
 │   ├── scripts/           generowanie kodu z proto
 │   └── tests/
 ├── config/                parametry etapów: seed, plansza, uczenie
@@ -162,12 +163,28 @@ Wygenerowanego kodu nie commitujemy w żadnym języku.
 73. **Zmarli czekający na ostatni widok są częścią stanu.** Świat trzyma ich z sąsiadami z chwili śmierci, a obserwację liczy przy wydawaniu widoku. Dzięki temu zapis zrobiony w turze czyjejś śmierci wznawia się dokładnie.
 74. **PostgreSQL z Docker Compose na porcie 55432.** Nietypowy port nie koliduje z innym lokalnym PostgreSQL. Hasło `npcworld` służy tylko lokalnej bazie deweloperskiej. Testy biorą własną bazę z Testcontainers i bez Dockera są pomijane.
 75. **Wczytanie zapisu cofa kronikę.** `resume` kasuje zdarzenia i zapisy przebiegu późniejsze niż tura zapisu, jak przy wczytaniu stanu gry. Bez tego kronika miałaby dwie wersje tych samych tur.
+76. **Jedna sieć aktor–krytyk na osadę, PPO w procesie serwera.** `NetworkSettlement` odpowiada na `Step` za całą osadę: jedno przejście sieci na turę dla wszystkich postaci, a co `rollout_ticks` tur jedna aktualizacja PPO z doświadczeń wszystkich. Polityka i wartość mają osobne warstwy, bo cele wartości sięgają setek tur naprzód i zagłuszały politykę. Sieć zapisuje się do `brain/data/<nazwa>/network.pt`.
+77. **Powtarzalność z PyTorchem.** Jeden wątek, `torch.use_deterministic_algorithms(True)`, losowanie ruchów i kolejność paczek z generatora o ziarnie z konfiguracji. Aktualizacja sieci dzieje się w środku `Step`, więc nie zależy od zegara. Obietnica dotyczy tego samego komputera.
+78. **Mapa miejsc zamiast mapy odkryć.** `PlaceMap` pamięta każde widziane pole z turą obserwacji i ilością (zapas magazynu, drewno na placu). Sąsiedzi wymieniają tylko to, co nowe od ostatniego kontaktu: mapa trzyma dziennik zmian, a każda para pamięta, dokąd go przeczytała. Mapa wie o zimie tyle, ile postać: pierwszego dnia zimy skreśla dzikie jedzenie i dojrzałe pola.
+79. **Wejście sieci.** Wycinek planszy jako one-hot typów pól, potrzeby, ekwipunek, pora roku z postępem, ilość pod postacią, liczba sąsiadów, wiek oraz dla sześciu rodzajów miejsc (woda, jedzenie, drzewo, magazyn, schronienie, plac budowy) cztery liczby z mapy: czy znane, kierunek i odległość. Do tego liczba znanych schronień i znany zapas w magazynach.
+80. **Umiejętność na jedną turę.** Sieć wybiera umiejętność co turę, a umiejętność zamienia się na jeden ruch kontraktu, tak jak „idź do znanego miejsca” w etapie 2. Nie ma zobowiązania na kilka tur, więc PPO zostaje zwykłym PPO. Umiejętności, które w danej chwili nic nie zrobią, są maskowane.
+81. **Umiejętność nie decyduje, czy warto.** Jedenaście umiejętności: pij, jedz, zbieraj jedzenie, zbieraj drewno, zanieś do magazynu, weź z magazynu, zasadź, buduj schronienie, buduj magazyn, schroń się, odkrywaj. „Jedz” i „zbieraj jedzenie” są osobno, bo wybór między zjedzeniem a odłożeniem ma należeć do sieci. „Buduj” dołącza do znanego placu budowy tego rodzaju, a nowy zakłada tylko wtedy, gdy postać nie zna żadnego; bez tego losowa polityka zasypuje planszę placami.
+82. **Pełne schronienie postać poznaje po sobie.** Kontrakt nie mówi, ile postaci stoi na polu. Gdy zimą energia spada w schronieniu, choć głód i pragnienie są niskie, postać uznaje je za pełne do wiosny i idzie do następnego.
+83. **Osada kontrolna to ta sama sieć z maską.** Wariant bez budowania wyłącza umiejętności sadzenia, magazynowania, budowania i schronienia. Reszta kodu, obserwacji i uczenia jest identyczna.
+84. **Uczenie w epizodach.** `--episode-ticks` w trybie treningu startuje nowy świat z tej samej konfiguracji, gdy osada wymrze albo epizod osiągnie długość. Tura 0 mówi mózgom, że zaczął się nowy świat: sieć zostaje, mapy i postacie znikają, a niedokończone doświadczenia liczą się jak ucięty epizod. Wiersz na epizod trafia do `out/<nazwa>-curve.csv`.
+85. **Kopia konfiguracji zamiast drugiego pliku.** `train.py --set sekcja.klucz=wartość` zapisuje zmienioną kopię do `out/<nazwa>-config.yaml` i podaje ją obu procesom. Krótsze pory roku i inny port serwera nie wymagają osobnych plików w `config/`.
+86. **Okno czyta zapis przez kronikę.** `world-history` zależy od `world-view` i polecenie `show --save ID` otwiera okno na wczytanym świecie. `world-view` dalej nie wie o bazie ani o JSON-ie, a okno niczego w kronice nie zmienia.
+87. **Plansza 64×64 w oknie.** Komórka ma 14 pikseli zamiast 30, tło pustych pól zmienia się z porą roku, magazyny i place budowy pokazują liczbę, a kropka w postaci mówi, co niesie. Wykres obok planszy pokazuje liczbę mieszkańców i zapas w magazynach.
+88. **Rozbieg ze scenariusza zamiast startu z zapisu z kroniki.** Przez pierwsze `warmup_ticks` tur każdego świata osadą kieruje scenariusz z kroku 3.10, a sieć niczego nie zapisuje do doświadczeń. Świat, nagrody i kontrakt zostają bez zmian, a `world-app` nie musi czytać zapisów z kroniki. Rozbieg kurczy się do zera w miarę uczenia (`warmup_decay_ticks`), więc wytrenowana sieć prowadzi osadę od pierwszej tury, a pomiar bez uczenia nie ma rozbiegu wcale. Licznik tur uczenia zapisuje się razem z siecią.
+89. **Wspólna nagroda jako parametr uczenia.** `team_share` zastępuje część nagrody postaci średnią nagrodą osady z tej samej tury. Świat liczy nagrody jak dotąd; mieszanie robi mózg, tak jak dziedziczenie w etapie 2.
+90. **Umiejętność kończy się po swojej czynności.** Postać trzyma wybraną umiejętność przez `skill_ticks` tur, ale tylko dopóki umiejętność idzie. Pierwsza czynność inna niż krok (picie, jedzenie, zbiór, budowa, odłożenie) kończy wybór i postać wybiera od nowa w następnej turze. Wyjątkiem jest „schroń się”, której czynnością jest stanie w schronieniu. Bez tego postać, która zimą poszła się najeść, stała potem na mrozie do końca wyboru i sieć uczyła się, że jedzenie zimą się nie opłaca.
+91. **Rozbieg liczony raz na przebieg.** Przy stałym rozbiegu `train.py` podaje światu `--episode-start-tick`: pierwszy świat liczy od tury 0 i zapamiętuje stan w turze rozbiegu, każdy następny startuje z tego stanu przez `World.restore`. Mózgi widzą, że zegar się cofnął, i odtwarzają postacie i mapy z kopii zrobionej w tej samej turze. Bez tego 85% czasu uczenia zjadał scenariusz liczący wciąż te same tury.
 
 ## Co dochodzi później
 
 | Etap | Technologia | Po co |
 |---|---|---|
-| 3 | PyTorch | sieć zamiast tablic Q i PPO dla opóźnionych nagród |
+| 3 | PyTorch | sieć zamiast tablic Q i PPO dla opóźnionych nagród (wdrożone w kroku 3.9) |
 | 3 | Spring Boot, PostgreSQL, Flyway | historia świata, zapis i wczytywanie stanu (wdrożone w kroku 3.8) |
 | 4 | LM Studio, serwer zgodny z API OpenAI | propozycje zmian reguł z uzasadnieniem |
 | 5 | Unity 6 | widok 3D wielu osad |

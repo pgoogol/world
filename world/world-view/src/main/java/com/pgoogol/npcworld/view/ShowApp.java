@@ -40,6 +40,14 @@ public final class ShowApp extends Application {
     private final RollingMean rollingMean = new RollingMean(ROLLING_LIVES);
     private final XYChart.Series<Number, Number> series = new XYChart.Series<>();
 
+    /** Stage 3: one point on the settlement chart every this many ticks. */
+    private static final int SETTLEMENT_SAMPLE_TICKS = 25;
+
+    private final XYChart.Series<Number, Number> populationSeries = new XYChart.Series<>();
+    private final XYChart.Series<Number, Number> storedSeries = new XYChart.Series<>();
+    private int seasonTicks;
+    private long sampledTick = -1;
+
     private GrpcBrain brain;
     private SimulationRunner runner;
     private long paintedTick = -1;
@@ -55,23 +63,26 @@ public final class ShowApp extends Application {
         snapshotFile = args.get("snapshot").map(Path::of).orElse(null);
         snapshotTick = args.get("snapshot-tick").map(Long::parseLong).orElse(300L);
 
-        World world = new World(config.world());
+        // A world handed over by another program (a save loaded from the chronicle) goes first.
+        World world = ShowMain.takePreloaded().orElseGet(() -> new World(config.world()));
+        seasonTicks = config.world().seasons().seasonTicks();
         world.addListener(endedLives::add);
         brain = GrpcBrain.connect(config.brainAddress());
         runner = new SimulationRunner(new Simulation(world, brain), ticksPerSecond);
 
         WorldSnapshot first = runner.latest();
-        Canvas canvas = new Canvas(first.width() * BoardPainter.CELL, first.height() * BoardPainter.CELL);
+        int cell = BoardPainter.cellSize(first.width(), first.height());
+        Canvas canvas = new Canvas(first.width() * cell, first.height() * cell);
         Label status = new Label();
         status.setFont(Font.font("Monospaced", 13));
 
-        VBox side = new VBox(12, lifeChart(), status);
+        VBox side = seasonTicks > 0 ? new VBox(12, settlementChart(), status) : new VBox(12, lifeChart(), status);
         side.setPadding(new Insets(12));
         BorderPane root = new BorderPane(canvas);
         root.setRight(side);
         root.setPadding(new Insets(12));
 
-        stage.setTitle("NPC World: etap 1, mała osada");
+        stage.setTitle(seasonTicks > 0 ? "NPC World: osada i pory roku" : "NPC World: mała osada");
         stage.setScene(new Scene(root));
         stage.show();
 
@@ -99,6 +110,7 @@ public final class ShowApp extends Application {
             paintedTick = snapshot.tick();
             BoardPainter.paint(canvas.getGraphicsContext2D(), snapshot);
             status.setText(describe(snapshot));
+            sampleSettlement(snapshot);
         }
         runner.failure().ifPresent(failure ->
                 status.setText(describe(snapshot) + "\nSymulacja zatrzymana: " + failure.getMessage()));
@@ -135,7 +147,71 @@ public final class ShowApp extends Application {
         return chart;
     }
 
-    private static String describe(WorldSnapshot snapshot) {
+    /** Stage 3: the population and the stores over time, the yearly cycle in one picture. */
+    private LineChart<Number, Number> settlementChart() {
+        NumberAxis ticks = new NumberAxis();
+        ticks.setLabel("Tura");
+        ticks.setForceZeroInRange(false);
+        NumberAxis count = new NumberAxis();
+        LineChart<Number, Number> chart = new LineChart<>(ticks, count);
+        chart.setTitle("Osada w czasie");
+        chart.setCreateSymbols(false);
+        chart.setAnimated(false);
+        chart.setPrefSize(460, 260);
+        populationSeries.setName("Mieszkańcy");
+        storedSeries.setName("Zapas w magazynach (dziesiątki porcji)");
+        chart.getData().add(populationSeries);
+        chart.getData().add(storedSeries);
+        return chart;
+    }
+
+    private void sampleSettlement(WorldSnapshot snapshot) {
+        if (seasonTicks == 0 || snapshot.tick() / SETTLEMENT_SAMPLE_TICKS == sampledTick / SETTLEMENT_SAMPLE_TICKS
+                && sampledTick >= 0) {
+            return;
+        }
+        sampledTick = snapshot.tick();
+        SettlementSummary summary = SettlementSummary.of(snapshot);
+        populationSeries.getData().add(new XYChart.Data<>(snapshot.tick(), summary.population()));
+        storedSeries.getData().add(new XYChart.Data<>(snapshot.tick(), summary.storedFood() / 10.0));
+        if (populationSeries.getData().size() > MAX_CHART_POINTS) {
+            populationSeries.getData().removeFirst();
+            storedSeries.getData().removeFirst();
+        }
+    }
+
+    /** Stage 3: the calendar, the settlement in numbers and what every NPC carries. */
+    static String describeSettlement(WorldSnapshot snapshot, int seasonTicks) {
+        SettlementSummary summary = SettlementSummary.of(snapshot);
+        StringBuilder text = new StringBuilder("Tura " + snapshot.tick() + "\n");
+        text.append(SettlementSummary.calendar(snapshot, seasonTicks)).append("\n\n");
+        text.append(String.format("Mieszkańcy: %d (w schronieniach: %d)%n", summary.population(), summary.inShelters()));
+        text.append(String.format("Zapas w magazynach: %d porcji%n", summary.storedFood()));
+        text.append(String.format("Schronienia: %d, magazyny: %d, place budowy: %d%n",
+                summary.shelters(), summary.stores(), summary.sites()));
+        text.append(String.format("Pola zasiane: %d, dojrzałe: %d%n", summary.fieldsSown(), summary.fieldsRipe()));
+        text.append(String.format("Niesione: %d porcji jedzenia, %d drewna%n%n",
+                summary.carriedFood(), summary.carriedWood()));
+        text.append("Postać  Głód  Pragn.  Energia  Jedz.  Drewno  Wiek\n");
+        for (NpcSnapshot npc : snapshot.npcs()) {
+            text.append(String.format("%-6d  %4d  %6d  %7d  %5d  %6d  %3.0f%%%n", npc.id(), npc.hunger(), npc.thirst(),
+                    npc.energy(), npc.carriedFood(), npc.carriedWood(), 100 * BoardPainter.ageShare(npc)));
+        }
+        text.append("\nZielone: jedzenie, ciemnozielone: drzewo, niebieskie: woda,\n"
+                + "czerwone: lawa, żółte: dojrzałe pole, beżowe: zasiane pole,\n"
+                + "brązowe: schronienie, fioletowe: magazyn (liczba: zapas),\n"
+                + "jasnobrązowe: plac budowy (liczba: drewno).\n"
+                + "Kropka w postaci: niesie jedzenie (zielona)\n"
+                + "albo drewno (brązowa).");
+        return text.toString();
+    }
+
+    private String describe(WorldSnapshot snapshot) {
+        return seasonTicks > 0 && snapshot.season() != null
+                ? describeSettlement(snapshot, seasonTicks) : describeLives(snapshot);
+    }
+
+    private static String describeLives(WorldSnapshot snapshot) {
         boolean ageing = snapshot.npcs().stream().anyMatch(npc -> npc.lifespan() > 0);
         StringBuilder text = new StringBuilder("Tura " + snapshot.tick() + "\n\n");
         text.append("Postać  Głód  Pragn.  Energia  Bez upadku");

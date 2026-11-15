@@ -14,8 +14,8 @@
         <module>world-core</module>
         <module>world-brain</module>
         <module>world-app</module>
-        <module>world-history</module>
         <module>world-view</module>
+        <module>world-history</module>
     </modules>
 
     <properties>
@@ -52,6 +52,11 @@
             <dependency>
                 <groupId>com.pgoogol.npcworld</groupId>
                 <artifactId>world-app</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.pgoogol.npcworld</groupId>
+                <artifactId>world-view</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
