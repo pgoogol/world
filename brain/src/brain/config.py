@@ -51,6 +51,8 @@ class NetworkConfig:
     entropy: float = 0.01
     value_weight: float = 0.5
     max_grad_norm: float = 0.5
+    target_kl: float = 0.0         # stop an update once the policy moved this far (approximate KL); 0 = never
+    checkpoint_every_episodes: int = 0  # keep a copy of the network every this many worlds; 0 = never
     rollout_ticks: int = 128
     warmup_ticks: int = 0          # step 3.11: the scenario of step 3.10 leads every new world this long
     warmup_decay_ticks: int = 0    # learned ticks over which the warm-up shrinks to zero; 0 keeps it fixed

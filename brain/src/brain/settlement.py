@@ -58,6 +58,7 @@ class NetworkSettlement:
         self.ppo = Ppo(self._network.view_size ** 2, SCALARS, self.choices.count, self._network, config.seed)
         # Ticks this network has learned from, over all runs; they shorten the warm-up.
         self.learned_ticks = 0
+        self.worlds_finished = 0
         if load and save_path is not None and save_path.exists():
             state = torch.load(save_path, weights_only=False)
             self.ppo.load_state(state)
@@ -208,13 +209,18 @@ class NetworkSettlement:
         left = max(0.0, 1.0 - learned_ticks / network.warmup_decay_ticks)
         return int(network.warmup_ticks * left)
 
-    def save(self) -> None:
-        if self._save_path is None:
+    def save(self, path: Path | None = None) -> None:
+        path = path or self._save_path
+        if path is None:
             return
-        self._save_path.parent.mkdir(parents=True, exist_ok=True)
-        temporary = self._save_path.with_suffix(".tmp")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = path.with_suffix(".tmp")
         torch.save({**self.ppo.state(), "learned_ticks": self.learned_ticks}, temporary)
-        os.replace(temporary, self._save_path)
+        os.replace(temporary, path)
+
+    def checkpoint_path(self) -> Path:
+        """Where the copy of the network at the current number of learned ticks goes."""
+        return self._save_path.parent / "checkpoints" / f"network-{self.learned_ticks:09d}.pt"
 
     def drain_choice_counts(self) -> dict[str, int]:
         counts = dict(zip(self.choices.names, self.choice_counts))
@@ -267,6 +273,12 @@ class NetworkSettlement:
         for npc_id in list(self.members):
             self._retire(npc_id)
         self.warmup = self.warmup_for(self.learned_ticks)
+        every = self._network.checkpoint_every_episodes
+        if self._learning and every > 0 and self._save_path is not None and self.learned_ticks > 0:
+            # The best network of a run is often not the last one: keep copies along the way.
+            self.worlds_finished += 1
+            if self.worlds_finished % every == 0:
+                self.save(self.checkpoint_path())
 
     def _update(self, deciding, cells, scalars, masks) -> None:
         """One PPO update. A piece of experience ends with the value of the state that follows it: for an

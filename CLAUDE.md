@@ -131,6 +131,12 @@ Program nauczania z rozbiegiem (krok 3.11): do tury W osadą kieruje scenariusz 
 uv run --group nn python scripts/curriculum.py --name s3-l --resume --warmups 1400 1000 500 250 0 --ticks 600000 --set brain.network.entropy=0.01 --set brain.network.skill_ticks=16
 ```
 
+Z `--set brain.network.checkpoint_every_episodes=25` program zapisuje kopie sieci po drodze. Każdą mierzy na pięciu latach i najlepszą kopiuje do `brain/data/<nazwa>-best/`:
+
+```
+uv run --group nn python scripts/best.py --name s3-r --set brain.network.skill_ticks=16
+```
+
 Pomiar wytrenowanej sieci na pięciu latach, bez uczenia:
 
 ```

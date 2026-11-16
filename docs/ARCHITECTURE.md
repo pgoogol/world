@@ -179,6 +179,8 @@ Wygenerowanego kodu nie commitujemy w żadnym języku.
 89. **Wspólna nagroda jako parametr uczenia.** `team_share` zastępuje część nagrody postaci średnią nagrodą osady z tej samej tury. Świat liczy nagrody jak dotąd; mieszanie robi mózg, tak jak dziedziczenie w etapie 2.
 90. **Umiejętność kończy się po swojej czynności.** Postać trzyma wybraną umiejętność przez `skill_ticks` tur, ale tylko dopóki umiejętność idzie. Pierwsza czynność inna niż krok (picie, jedzenie, zbiór, budowa, odłożenie) kończy wybór i postać wybiera od nowa w następnej turze. Wyjątkiem jest „schroń się”, której czynnością jest stanie w schronieniu. Bez tego postać, która zimą poszła się najeść, stała potem na mrozie do końca wyboru i sieć uczyła się, że jedzenie zimą się nie opłaca.
 91. **Rozbieg liczony raz na przebieg.** Przy stałym rozbiegu `train.py` podaje światu `--episode-start-tick`: pierwszy świat liczy od tury 0 i zapamiętuje stan w turze rozbiegu, każdy następny startuje z tego stanu przez `World.restore`. Mózgi widzą, że zegar się cofnął, i odtwarzają postacie i mapy z kopii zrobionej w tej samej turze. Bez tego 85% czasu uczenia zjadał scenariusz liczący wciąż te same tury.
+92. **Kopie sieci po drodze i wybór najlepszej.** Uczenie jest niestabilne, a najlepsza sieć przebiegu rzadko jest ostatnią. `checkpoint_every_episodes` zapisuje kopię do `brain/data/<nazwa>/checkpoints/network-<tury uczenia>.pt`, a `scripts/best.py` mierzy każdą na pięciu latach i kopiuje najlepszą do `brain/data/<nazwa>-best/`.
+93. **Próg KL jako opcja PPO.** `target_kl` przerywa aktualizację, gdy przybliżona dywergencja KL między nową a zbieraną polityką przekroczy próg. Przy zerze PPO działa jak wcześniej, więc dawne przebiegi dają te same liczby.
 
 ## Co dochodzi później
 

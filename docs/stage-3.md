@@ -1,6 +1,6 @@
 # Etap 3: Tworzenie świata
 
-Status: w toku, odbiór negatywny. Kroki 3.1–3.12 są gotowe. Odbiór (3.13) pokazał, że wytrenowana osada nie przeżywa pięciu zim. Etap czeka na decyzję z sekcji „Co dalej po odbiorze”.
+Status: w toku, odbiór negatywny. Kroki 3.1–3.12 są gotowe. Odbiór (3.13) pokazał, że wytrenowana osada nie przeżywa pięciu zim. Po trzech próbach uczenia etap czeka na decyzję z sekcji „Co dalej po odbiorze”.
 
 ## Cel
 
@@ -291,16 +291,26 @@ Pomiar na docelowej konfiguracji (pory po 500 tur, bez rozbiegu, bez uczenia, pi
 
 Dwa pomiary tej samej sieci na tym samym seedzie dają identyczne pliki statystyk i osady.
 
+**Trzecia próba: kopie sieci po drodze i próg KL.** Dwa przebiegi od sieci L, program 500 → 250 → 0 po 600 000 tur, kopia sieci co 25 epizodów, każda kopia zmierzona na pięciu latach bez rozbiegu i bez uczenia (`scripts/best.py`).
+
+- **R** powtarza program L3 z tymi samymi ustawieniami. Pierwsze 39 epizodów jest identycznych z L3 co do bajta, więc przebiegi z siecią są powtarzalne także w uczeniu w epizodach.
+- **S** dokłada próg KL 0,02 i krok uczenia 0,0001 zamiast 0,0003.
+
+| Przebieg | Kopie | Najlepsza kopia | Przeżyte zimy | Wymiera w turze |
+|---|---|---|---|---|
+| R | 32 | po 3,22 mln tur uczenia | 2 | 7925 |
+| S | 30 | po 1,65 mln tur uczenia | 0 | 1916 (najpóźniej ze wszystkich) |
+
+- **Najlepsza kopia R gromadzi zapas, ale buduje za mało schronień.** Przed pierwszą zimą ma 159 porcji w 5 magazynach i jedno schronienie na 4 miejsca, więc zimę przeżywają 4 postacie z 15. Taka czwórka ciągnie osadę do czwartej zimy (zapas przed kolejnymi zimami: 129, 74, 33 porcje).
+- **Próg KL stabilizuje uczenie z rozbiegiem, nie bez niego.** S przy rozbiegu do tury 250 przeżywa 1,8–1,9 zimy na epizod (z dwóch możliwych) i wchodzi w zimę z 210–250 porcjami. To najlepszy etap ze wszystkich prób. Bez rozbiegu przeżywa najwyżej 0,14 zimy na epizod.
+- **Ten sam wniosek co w drugiej próbie:** sieć umie przetrwać zimę w osadzie, którą ktoś założył. Sama zakłada za mało: jedno schronienie zamiast pięciu.
+
 ### Co dalej po odbiorze
 
-Scenariusz z kroku 3.10 przeżywa pięć zim na tych samych umiejętnościach, a sieć w trakcie uczenia przeżywała pierwszą zimę w 85% epizodów. Brakuje stabilnego uczenia i jednej czynności: założenia pierwszego placu budowy. Możliwe kroki, od najtańszego:
+Trzy próby uczenia dały najwyżej dwie przeżyte zimy. Przed trzecią ustaliłem granicę: jeśli najlepsza sieć nie przeżyje pięciu zim, przestaję stroić uczenie. Decyzja należy do właściciela projektu:
 
-1. **Zapis sieci po drodze i wybór najlepszej.** Przebiegi są deterministyczne, więc program L3 da się powtórzyć co do tury (około 5 godzin) z zapisem sieci co 50 epizodów i zmierzyć sieć z najlepszego odcinka. To nie rozwiąże niestabilności, ale pokaże, ile zim przeżywa najlepsza sieć.
-2. **Stabilniejsze PPO.** Krok uczenia malejący w późnych etapach i przerwanie aktualizacji przy zbyt dużej zmianie polityki (próg KL). Do sprawdzenia na tym samym programie.
-3. **Etap pośredni z rozbiegiem do tury 100,** w którym scenariusz zakłada tylko pierwszy plac. To wciąż nie jest nagroda za budowanie, ale skraca drogę do etapu bez rozbiegu.
-4. **Zmiana kryterium etapu,** na przykład przeżycie pierwszej zimy przez wytrenowaną osadę. To decyzja o zakresie projektu, nie o uczeniu.
-
-Domyślnie biorę punkty 1 i 2 razem.
+1. **Zmienić kryterium etapu 3 i przejść do etapu 4.** Na przykład: wytrenowana osada przeżywa pierwszą zimę i sama sadzi oraz magazynuje. Najlepsza sieć R to spełnia. W etapie 4 osadę może prowadzić ta sieć albo scenariusz z umiejętności, bo etap 4 bada reguły osady, a nie przetrwanie.
+2. **Zostać przy etapie 3 i zmienić podejście do zakładania osady.** Najmocniejszy kandydat: umiejętność „załóż osadę” (plac budowy przy wodzie i magazynie) albo osobna, prostsza sieć do decyzji o budowie. To skraca drogę, której sieć nie przechodzi sama, ale osłabia tezę, że osada sama odkryła budowanie.
 
 ### 3.12 Widok
 
@@ -329,14 +339,14 @@ Zapis z kroniki otwiera polecenie `show --save ID` w `world-history.jar`. W pró
 
 | Kryterium | Stan |
 |---|---|
-| Wytrenowana osada przeżywa 5 zim | Nie. Najlepsza końcowa sieć wymiera w pierwszej zimie, w turze 1801. W trakcie uczenia osada przeżywała pierwszą zimę w 85% epizodów. |
+| Wytrenowana osada przeżywa 5 zim | Nie. Najlepsza z 62 zapisanych kopii sieci przeżywa 2 zimy i wymiera w turze 7925. W trakcie uczenia osada przeżywała pierwszą zimę w 85% epizodów. |
 | Ta sama osada bez sadzenia, magazynowania i budowania wymiera | Tak, w turze 1600. W uczeniu ginie zawsze w pierwszej zimie. |
-| Osada sadzi i magazynuje bez nagrody za te czynności | Tak w trakcie uczenia (do 9 magazynów i 96 porcji przed zimą, bez rozbiegu), nie w końcowej sieci. |
+| Osada sadzi i magazynuje bez nagrody za te czynności | Tak. Najlepsza kopia sieci, bez rozbiegu, wchodzi w pierwszą zimę z 159 porcjami w 5 magazynach. |
 | Ten sam seed daje identyczne pliki statystyk | Tak. Uczenie sieci na świecie etapu 2 (400 000 tur) i pomiar sieci na świecie etapu 3: pliki identyczne. |
 | Wczytany zapis daje ten sam przebieg | Tak, testy z kroku 3.8 przechodzą. Uczenie w epizodach korzysta z tego samego mechanizmu. |
 | Etapy 1 i 2 dają wyniki identyczne ze swoimi odbiorami | Tak. `self` (700 000 tur) i `s2-all` (400 000 tur z dziennikiem epizodów) co do bajta. |
 
-Etap nie jest odebrany: pierwsze kryterium nie jest spełnione, a trzecie tylko w trakcie uczenia.
+Etap nie jest odebrany: pierwsze kryterium nie jest spełnione.
 
 ## Ryzyka
 

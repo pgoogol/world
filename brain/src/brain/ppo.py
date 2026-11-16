@@ -81,6 +81,7 @@ class Ppo:
 
         self._generator = torch.Generator().manual_seed(seed)
         self.updates = 0
+        self.stopped_early = False
         self.last_stats: dict[str, float] = {}
 
     def evaluate(self, cells: list[list[int]], scalars: list[list[float]], masks: list[list[bool]]):
@@ -120,7 +121,10 @@ class Ppo:
         advantage_t = (advantage_t - advantage_t.mean()) / (advantage_t.std() + 1e-8)
 
         count = len(steps)
+        self.stopped_early = False
         for _ in range(config.epochs):
+            if self.stopped_early:
+                break
             order = torch.randperm(count, generator=self._generator)
             for start in range(0, count, config.minibatch):
                 batch = order[start:start + config.minibatch]
@@ -129,7 +133,16 @@ class Ppo:
                 logits, values = self.network(cells[batch], scalars[batch], masks[batch])
                 log_probs = torch.log_softmax(logits, dim=1)
                 chosen = log_probs.gather(1, choices[batch]).squeeze(1)
-                ratio = (chosen - old_log_probs[batch]).exp()
+                log_ratio = chosen - old_log_probs[batch]
+                ratio = log_ratio.exp()
+                if config.target_kl > 0:
+                    # How far the policy has moved from the one that collected the experience. Past the
+                    # target the rest of this update is skipped: big jumps undid what the network knew.
+                    with torch.no_grad():
+                        approx_kl = ((ratio - 1) - log_ratio).mean().item()
+                    if approx_kl > config.target_kl:
+                        self.stopped_early = True
+                        break
                 adv = advantage_t[batch]
                 policy_loss = -torch.min(ratio * adv, ratio.clamp(1 - config.clip, 1 + config.clip) * adv).mean()
                 value_loss = (values - return_t[batch]).pow(2).mean()
@@ -140,8 +153,8 @@ class Ppo:
                 nn.utils.clip_grad_norm_(self.network.parameters(), config.max_grad_norm)
                 self.optimizer.step()
         self.updates += 1
-        self.last_stats = {"steps": count, "value_loss": value_loss.item(), "entropy": entropy.item(),
-                           "mean_return": float(return_t.mean())}
+        self.last_stats = {"steps": count, "mean_return": float(return_t.mean()),
+                           "stopped_early": float(self.stopped_early)}
 
     def state(self) -> dict:
         return {"network": self.network.state_dict(), "optimizer": self.optimizer.state_dict(),

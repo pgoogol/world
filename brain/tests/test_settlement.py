@@ -348,3 +348,34 @@ def test_sitting_in_a_shelter_keeps_the_skill():
 
     assert response.actions[0].action == pb.ACTION_STAY
     assert member.decide_at == 16
+
+
+def test_network_is_copied_every_few_worlds(tmp_path):
+    settlement = NetworkSettlement(stage3(checkpoint_every_episodes=2), save_path=tmp_path / "network.pt")
+
+    for world in range(5):
+        for tick in range(3):
+            settlement.step(request(tick, view7(0)))
+
+    copies = sorted(path.name for path in (tmp_path / "checkpoints").iterdir())
+    assert copies == ["network-000000006.pt", "network-000000012.pt"]
+
+
+def test_update_stops_once_the_policy_moved_too_far():
+    loose = Ppo(view_cells=1, scalars=1, choices=2, seed=1,
+                config=NetworkConfig(minibatch=8, epochs=10, learning_rate=0.05))
+    tight = Ppo(view_cells=1, scalars=1, choices=2, seed=1,
+                config=NetworkConfig(minibatch=8, epochs=10, learning_rate=0.05, target_kl=0.001))
+    def pieces():
+        return [([Step([1], [0.0], [True, True], arm, -0.69, 0.0, reward=float(arm), done=True)], 0.0)
+                for arm in (0, 1) * 32]
+
+    loose.update(pieces())
+    tight.update(pieces())
+
+    def preference(ppo):
+        logits, _ = ppo.evaluate([[1]], [[0.0]], [[True, True]])
+        return torch.softmax(logits, dim=1)[0, 1].item()
+
+    assert tight.stopped_early and not loose.stopped_early
+    assert 0.5 < preference(tight) < preference(loose)

@@ -93,6 +93,8 @@ brain:
     team_share: 0.0         # share of an NPC's reward replaced by the settlement's mean reward
     warmup_ticks: 0         # the scenario of step 3.10 leads every new world this long; nothing is learned then
     warmup_decay_ticks: 0   # learned ticks over which the warm-up shrinks to zero; 0 keeps it fixed
+    target_kl: 0.0          # stop a PPO update once the policy moved this far (approximate KL); 0 = never
+    checkpoint_every_episodes: 0  # keep a copy of the network every this many worlds; 0 = never
     food_retry_ticks: 60
     age_scale: 6000
 

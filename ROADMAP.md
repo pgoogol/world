@@ -88,10 +88,10 @@ Plan z krokami: [docs/stage-3.md](docs/stage-3.md). Najważniejsze ustalenia pla
 |---|---|
 | Scenariusz z samych umiejętności | przeżywa 5 zim, 22 postacie po pięciu latach |
 | Ten sam scenariusz bez budowania | wymiera w turze 1600 |
-| Sieć PPO po programie nauczania | wymiera w pierwszej zimie, w turze 1801 |
+| Najlepsza z 62 kopii sieci PPO | przeżywa 2 zimy, wymiera w turze 7925 |
 | Sieć PPO bez budowania | wymiera w turze 1600 |
 
-Sieć sprawdzona na świecie etapu 2 dochodzi do 1990–2000 tur między upadkami przy poziomie dorosłych 434. Na świecie etapu 3 uczy się w programie, w którym scenariusz prowadzi osadę coraz krócej. W połowie ostatniego etapu, już bez scenariusza, osada sama budowała do 9 magazynów, wchodziła w zimę z 81–96 porcjami i przeżywała pierwszą zimę w 85% epizodów, choć świat nie nagradza ani sadzenia, ani magazynowania. Potem uczenie się załamało i końcowa sieć tego nie umie. Kolejne kroki opisuje [docs/stage-3.md](docs/stage-3.md), sekcja „Co dalej po odbiorze”.
+Sieć sprawdzona na świecie etapu 2 dochodzi do 1990–2000 tur między upadkami przy poziomie dorosłych 434. Na świecie etapu 3 uczy się w programie, w którym scenariusz prowadzi osadę coraz krócej. W połowie ostatniego etapu, już bez scenariusza, osada sama budowała do 9 magazynów, wchodziła w zimę z 81–96 porcjami i przeżywała pierwszą zimę w 85% epizodów, choć świat nie nagradza ani sadzenia, ani magazynowania. Najlepsza zapisana kopia sieci gromadzi zapas (159 porcji przed pierwszą zimą), ale stawia jedno schronienie na 4 miejsca, więc zimę przeżywa tylko czwórka postaci. Kolejne kroki opisuje [docs/stage-3.md](docs/stage-3.md), sekcja „Co dalej po odbiorze”.
 
 ![Okno trybu pokazu w etapie 3](docs/img/stage-3-show.png)
 
