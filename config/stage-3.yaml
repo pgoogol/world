@@ -78,23 +78,24 @@ brain:
   scripted:
     build: true             # false: the same scenario without shelters, stores and fields
   # One network for the whole settlement, trained with PPO (--variant network, needs `uv run --group nn`).
+  # The values are those of the accepted network (brain/models/stage-3-network.pt, docs/stage-3.md, step 3.11).
   network:
     choices: skills         # composite skills; the network picks one for the next few ticks
     hidden: 128
     gamma: 0.999            # rewards come hundreds of ticks after the work that earns them
     gae_lambda: 0.97
-    learning_rate: 0.0003
+    learning_rate: 0.0001
     clip: 0.2
     epochs: 4
     minibatch: 512
-    entropy: 0.02
+    entropy: 0.01
     rollout_ticks: 512      # ticks of experience of the whole settlement per PPO update
-    skill_ticks: 8          # an NPC keeps a chosen skill this long, unless it stops being possible
-    team_share: 0.0         # share of an NPC's reward replaced by the settlement's mean reward
+    skill_ticks: 16         # an NPC keeps a chosen skill this long, unless it stops being possible
+    team_share: 0.5         # share of an NPC's reward replaced by the settlement's mean reward
     warmup_ticks: 0         # the scenario of step 3.10 leads every new world this long; nothing is learned then
     warmup_decay_ticks: 0   # learned ticks over which the warm-up shrinks to zero; 0 keeps it fixed
-    target_kl: 0.0          # stop a PPO update once the policy moved this far (approximate KL); 0 = never
-    checkpoint_every_episodes: 0  # keep a copy of the network every this many worlds; 0 = never
+    target_kl: 0.02         # stop a PPO update once the policy moved this far (approximate KL); 0 = never
+    checkpoint_every_episodes: 25 # keep a copy of the network every this many worlds; 0 = never
     food_retry_ticks: 60
     age_scale: 6000
 

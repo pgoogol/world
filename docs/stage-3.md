@@ -1,6 +1,6 @@
 # Etap 3: Tworzenie świata
 
-Status: w toku, odbiór negatywny. Kroki 3.1–3.12 są gotowe. Odbiór (3.13) pokazał, że wytrenowana osada nie przeżywa pięciu zim. Po trzech próbach uczenia etap czeka na decyzję z sekcji „Co dalej po odbiorze”.
+Status: ukończony. Wszystkie kroki są gotowe, a odbiór (3.13) jest w sekcji „Odbiór”. Wytrenowana osada przeżywa pięć zim i kończy z 23 postaciami.
 
 ## Cel
 
@@ -134,7 +134,7 @@ Pora roku jest krótsza niż w specyfikacji wstępnej (500 zamiast 1000 tur), bo
 
   *Gotowe, gdy:* w oknie widać cykl roku: zbiory jesienią, schronienia zimą, zasiewy wiosną.
 
-- [ ] **3.13 Odbiór etapu.** Sprawdź kryteria i wpisz wyniki do `ROADMAP.md`.
+- [x] **3.13 Odbiór etapu.** Sprawdź kryteria i wpisz wyniki do `ROADMAP.md`.
 
 ## Wyniki kroków
 
@@ -221,13 +221,13 @@ Seed 42, plansza 64×64, 20 założycieli, pięć lat:
 
 | Zima | Postacie przed zimą | Po zimie | Jedzenie w magazynach | Schronienia | Magazyny |
 |---|---|---|---|---|---|
-| 1 | 19 | 19 | 371 | 9 | 4 |
-| 2 | 24 | 23 | 382 | 10 | 4 |
-| 3 | 24 | 24 | 378 | 10 | 4 |
-| 4 | 27 | 26 | 373 | 10 | 4 |
-| 5 | 21 | 22 | 386 | 10 | 4 |
+| 1 | 19 | 17 | 384 | 10 | 4 |
+| 2 | 23 | 23 | 381 | 11 | 4 |
+| 3 | 20 | 22 | 399 | 11 | 4 |
+| 4 | 23 | 24 | 391 | 11 | 4 |
+| 5 | 25 | 26 | 386 | 11 | 4 |
 
-- **Scenariusz z samych umiejętności przeżywa pięć zim** i kończy z 22 postaciami. Ten sam scenariusz bez budowania wymiera w turze 1600.
+- **Scenariusz z samych umiejętności przeżywa pięć zim** i kończy z 26 postaciami. Ten sam scenariusz bez budowania wymiera w turze 1600. Tabela pokazuje stan po zmianach umiejętności z kroku 3.11 (budowanie od drewna do dachu, nieznany zapas magazynu); przed nimi scenariusz kończył z 22 postaciami.
 - **Trzy poprawki, zanim przeżył pierwszą zimę.** W pierwszej wersji zimę przeżyło 5 z 19 postaci. Postacie chodziły po jedzenie do magazynu przez mróz przy każdym posiłku, więc teraz biorą do schronienia trzy porcje. Schronienia stały przy różnych wodach, daleko od magazynów, więc domem jest najbliższy magazyn. Noworodek rodzi się przy magazynie z pustą mapą i zamarzał, zanim znalazł schronienie; schronienia w zasięgu wzroku od magazynu to rozwiązują.
 - **Tempo: 116–290 tur na sekundę,** szybciej niż scenariusz z kroku 3.6 (82–102), bo umiejętności nie szukają drogi po całej mapie.
 
@@ -305,12 +305,37 @@ Dwa pomiary tej samej sieci na tym samym seedzie dają identyczne pliki statysty
 - **Próg KL stabilizuje uczenie z rozbiegiem, nie bez niego.** S przy rozbiegu do tury 250 przeżywa 1,8–1,9 zimy na epizod (z dwóch możliwych) i wchodzi w zimę z 210–250 porcjami. To najlepszy etap ze wszystkich prób. Bez rozbiegu przeżywa najwyżej 0,14 zimy na epizod.
 - **Ten sam wniosek co w drugiej próbie:** sieć umie przetrwać zimę w osadzie, którą ktoś założył. Sama zakłada za mało: jedno schronienie zamiast pięciu.
 
-### Co dalej po odbiorze
+**Czwarta próba: budowanie jako jedna umiejętność.** Najlepsze sieci z trzeciej próby gromadziły zapas, ale zakładały za mało schronień i zostawiały niedokończone place: sieć musiała sama przeplatać „zbieraj drewno” i „buduj” bez nagrody za którekolwiek. Zmiany w umiejętnościach (decyzje 94–97 w `docs/ARCHITECTURE.md`):
 
-Trzy próby uczenia dały najwyżej dwie przeżyte zimy. Przed trzecią ustaliłem granicę: jeśli najlepsza sieć nie przeżyje pięciu zim, przestaję stroić uczenie. Decyzja należy do właściciela projektu:
+- „Buduj schronienie” i „buduj magazyn” same chodzą po drewno, przynoszą je i pracują, dopóki budynek nie stanie. Nowy plac zakładają przy najbliższym magazynie, a przed pierwszym magazynem przy wodzie.
+- Nowy plac zaczyna tylko świeży wybór. Bez tej zasady jeden wybór stawiał kilka schronień pod rząd (128 w jednej osadzie).
+- Nowy magazyn można założyć tylko wtedy, gdy znane magazyny mają co najmniej 80% pojemności. Bez tego sieć stawiała 41–72 magazyny.
+- Magazyn widziany z boku ma zapas „nieznany”, a nie zerowy. Noworodki przy magazynie przestały umierać z głodu.
 
-1. **Zmienić kryterium etapu 3 i przejść do etapu 4.** Na przykład: wytrenowana osada przeżywa pierwszą zimę i sama sadzi oraz magazynuje. Najlepsza sieć R to spełnia. W etapie 4 osadę może prowadzić ta sieć albo scenariusz z umiejętności, bo etap 4 bada reguły osady, a nie przetrwanie.
-2. **Zostać przy etapie 3 i zmienić podejście do zakładania osady.** Najmocniejszy kandydat: umiejętność „załóż osadę” (plac budowy przy wodzie i magazynie) albo osobna, prostsza sieć do decyzji o budowie. To skraca drogę, której sieć nie przechodzi sama, ale osłabia tezę, że osada sama odkryła budowanie.
+Świat i nagrody zostały bez zmian. Kolejne przebiegi douczały najlepszą kopię poprzedniego, bez rozbiegu, z kopią sieci co 25 epizodów i pomiarem każdej kopii na pięciu latach:
+
+| Przebieg | Start | Najlepsza kopia: zimy | Postacie po 5 latach |
+|---|---|---|---|
+| T | sieć L, rozbieg 1000 → 0 | 4 | 6 |
+| U2 | sieć U, bez rozbiegu | 5 | 16 |
+| X, Y | najlepsza kopia U2 | 5 | 16, 17 |
+| Z1 | najlepsza kopia Y, bez progu KL | 1 | 0 |
+| **Z2** | **najlepsza kopia Y, próg KL 0,02** | **5** | **23** |
+
+Sieć Z2 po 4,98 mln tur uczenia (`brain/models/stage-3-network.pt`), seed 42, docelowa konfiguracja, bez uczenia i bez rozbiegu:
+
+| Zima | Postacie przed zimą | Po zimie | Jedzenie w magazynach | Schronienia | Magazyny |
+|---|---|---|---|---|---|
+| 1 | 19 | 14 | 270 | 5 | 3 |
+| 2 | 19 | 17 | 261 | 8 | 3 |
+| 3 | 18 | 18 | 246 | 9 | 3 |
+| 4 | 21 | 21 | 278 | 11 | 3 |
+| 5 | 23 | 23 | 251 | 12 | 3 |
+
+- **Osada przeżywa pięć zim i rośnie:** 37 narodzin, 30 zgonów ze starości i 4 inne zgony w pięć lat.
+- **Magazynuje i sieje sama.** Przed każdą zimą ma w magazynach 246–278 porcji, a zasiane albo dojrzałe pola są w 16 z 40 okien pomiaru. Świat nie nagradza ani jednego, ani drugiego.
+- **Wynik jest powtarzalny:** dwa pomiary tej sieci dały identyczne pliki statystyk i osady.
+- **Uczenie dalej jest niestabilne.** Z 15 kopii Z2 kryterium spełnia jedna; sąsiednie kopie przeżywają 5 zim, ale kończą z 4 postaciami, albo przeżywają 3 zimy. Z1, ta sama sieć startowa bez progu KL, nie dała żadnej kopii z więcej niż jedną zimą. Etap 4 powinien zaczynać od tej konkretnej sieci, a nie od powtórzenia uczenia.
 
 ### 3.12 Widok
 
@@ -337,16 +362,16 @@ Zapis z kroniki otwiera polecenie `show --save ID` w `world-history.jar`. W pró
 
 ### Odbiór (krok 3.13)
 
+Seed 42, sieć `brain/models/stage-3-network.pt`, `config/stage-3.yaml`.
+
 | Kryterium | Stan |
 |---|---|
-| Wytrenowana osada przeżywa 5 zim | Nie. Najlepsza z 62 zapisanych kopii sieci przeżywa 2 zimy i wymiera w turze 7925. W trakcie uczenia osada przeżywała pierwszą zimę w 85% epizodów. |
-| Ta sama osada bez sadzenia, magazynowania i budowania wymiera | Tak, w turze 1600. W uczeniu ginie zawsze w pierwszej zimie. |
-| Osada sadzi i magazynuje bez nagrody za te czynności | Tak. Najlepsza kopia sieci, bez rozbiegu, wchodzi w pierwszą zimę z 159 porcjami w 5 magazynach. |
-| Ten sam seed daje identyczne pliki statystyk | Tak. Uczenie sieci na świecie etapu 2 (400 000 tur) i pomiar sieci na świecie etapu 3: pliki identyczne. |
-| Wczytany zapis daje ten sam przebieg | Tak, testy z kroku 3.8 przechodzą. Uczenie w epizodach korzysta z tego samego mechanizmu. |
+| Wytrenowana osada przeżywa 5 zim | Tak. Po każdej zimie żyje co najmniej połowa (najmniej 14 z 19 po pierwszej), po pięciu latach 23 postacie przy 20 założycielach. |
+| Ta sama osada bez sadzenia, magazynowania i budowania wymiera | Tak. Ta sama sieć z wyłączonym budowaniem i osada uczona od początku bez budowania wymierają w turze 1600, w pierwszej zimie. |
+| Osada sadzi i magazynuje bez nagrody za te czynności | Tak. 246–278 porcji w magazynach przed każdą zimą, pola zasiane w 16 z 40 okien. |
+| Ten sam seed daje identyczne pliki statystyk | Tak. Pomiar sieci powtórzony dwa razy, uczenie na świecie etapu 2 i powtórka programu nauczania L3: pliki identyczne. |
+| Wczytany zapis daje ten sam przebieg | Tak, testy z kroku 3.8 przechodzą. |
 | Etapy 1 i 2 dają wyniki identyczne ze swoimi odbiorami | Tak. `self` (700 000 tur) i `s2-all` (400 000 tur z dziennikiem epizodów) co do bajta. |
-
-Etap nie jest odebrany: pierwsze kryterium nie jest spełnione.
 
 ## Ryzyka
 

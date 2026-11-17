@@ -11,11 +11,13 @@ something is worth doing: that is what the network learns.
 
 import random
 
-from brain.places import PlaceMap, Position, WINTER, move_towards, nearest
+from brain.places import MOVES, PlaceMap, Position, WINTER, move_towards, nearest
 from brain.proto import brain_pb2 as pb
 
 EXPLORE_TICKS = 40      # how long an NPC keeps one direction while exploring
 EXPLORE_REACH = 20      # how far ahead it aims
+STORE_FULL = 0.8        # a store this full counts as full: what the NPC knows of it is already a few ticks old
+HOME_REACH = 3          # new sites go this close to the nearest store (or water, before the first store)
 
 
 class Member:
@@ -71,7 +73,8 @@ class Situation:
         if kind == "store":
             return place_map.places(pb.CELL_STORE)
         if kind == "stocked":
-            return [p for p in place_map.places(pb.CELL_STORE) if place_map.amount(p) > 0]
+            # A store seen only from the side may hold food: it is worth a look.
+            return [p for p in place_map.places(pb.CELL_STORE) if place_map.amount(p) != 0]
         if kind == "shelter":
             full = self.member.full_shelters
             return [p for p in place_map.places(pb.CELL_SHELTER) if p not in full]
@@ -110,6 +113,11 @@ class RawActions:
     def mask(self, s: Situation) -> list[bool]:
         return [True] * 6 + [self._target(s) is not None]
 
+    @staticmethod
+    def starts_site(choice: int, s: Situation) -> bool:
+        """The raw moves never start a building site."""
+        return False
+
     def action(self, choice: int, s: Situation) -> int:
         if choice < 6:
             return self.MOVES[choice]
@@ -122,15 +130,20 @@ DRINK, EAT, GATHER_FOOD, GATHER_WOOD, STORE_FOOD, TAKE_FOOD, PLANT, BUILD_SHELTE
 
 
 class Skills:
-    """Step 3.10: composite skills. Every skill is one line of intent and at most one walk."""
+    """Step 3.10: composite skills. Most skills are one line of intent and at most one walk; the two
+    building skills carry a building through from fetching wood to the last tick of work."""
 
     names = ("drink", "eat", "gather_food", "gather_wood", "store_food", "take_food", "plant",
              "build_shelter", "build_store", "take_shelter", "explore")
     count = len(names)
 
-    def __init__(self, inventory_size: int, board: tuple[int, int] = (64, 64), enabled: frozenset[int] | None = None):
+    def __init__(self, inventory_size: int, board: tuple[int, int] = (64, 64), enabled: frozenset[int] | None = None,
+                 shelter_wood: int = 6, store_wood: int = 4, store_capacity: int = 100):
         self._inventory = inventory_size
+        self._store_capacity = store_capacity
         self._board = board
+        self._shelter_wood = shelter_wood
+        self._store_wood = store_wood
         # The control settlement of the stage: the same network without planting, storing and building.
         self._enabled = enabled if enabled is not None else frozenset(range(self.count))
 
@@ -147,8 +160,8 @@ class Skills:
             obs.carried_food > 0 and s.near("store") is not None,
             room and s.near("stocked") is not None,
             obs.carried_food > 0 and cell == pb.CELL_EMPTY and s.here not in s.member.map.food_spots,
-            s.near("site_shelter") is not None or cell == pb.CELL_EMPTY,
-            s.near("site_store") is not None or cell == pb.CELL_EMPTY,
+            self._can_build(s, "site_shelter"),
+            self._can_build(s, "site_store") and (s.near("site_store") is not None or self._stores_full(s)),
             s.near("shelter") is not None,
             True,
         ]
@@ -179,22 +192,82 @@ class Skills:
         if choice == PLANT:
             return pb.ACTION_PLANT
         if choice == BUILD_SHELTER:
-            return self._build(s, "site_shelter", pb.CELL_SITE_SHELTER, pb.ACTION_BUILD_SHELTER)
+            return self._build(s, "site_shelter", pb.CELL_SITE_SHELTER, pb.ACTION_BUILD_SHELTER, self._shelter_wood)
         if choice == BUILD_STORE:
-            return self._build(s, "site_store", pb.CELL_SITE_STORE, pb.ACTION_BUILD_STORE)
+            return self._build(s, "site_store", pb.CELL_SITE_STORE, pb.ACTION_BUILD_STORE, self._store_wood)
         if choice == TAKE_SHELTER:
             return s.go(s.near("shelter"))
         return self._explore(s)
 
     @staticmethod
-    def _build(s: Situation, kind: str, site_cell: int, action: int) -> int:
-        """Join the nearest open site of this kind; only when the NPC knows none, start one here."""
+    def starts_site(choice: int, s: Situation) -> bool:
+        """Would this building skill start a new site now? Only a fresh choice may do that: a building
+        carried on from an earlier choice ends with the building instead of starting the next one."""
+        if choice == BUILD_SHELTER:
+            return s.cell != pb.CELL_SITE_SHELTER and s.near("site_shelter") is None
+        if choice == BUILD_STORE:
+            return s.cell != pb.CELL_SITE_STORE and s.near("site_store") is None
+        return False
+
+    @staticmethod
+    def _can_build(s: Situation, kind: str) -> bool:
+        """A site to work on, a home to start one at, or an empty cell to start one right here."""
+        return (s.near(kind) is not None or s.near("store") is not None or s.near("water") is not None
+                or s.cell == pb.CELL_EMPTY)
+
+    def _stores_full(self, s: Situation) -> bool:
+        """A new store is worth starting only when the NPC knows none, or every one it knows is (nearly) full.
+        A store whose stock the NPC has not seen counts as not full."""
+        place_map = s.member.map
+        stores = place_map.places(pb.CELL_STORE)
+        return all(place_map.amount(store) >= STORE_FULL * self._store_capacity for store in stores)
+
+    def _build(self, s: Situation, kind: str, site_cell: int, action: int, wood_needed: int) -> int:
+        """Carries a building through: fetch wood, bring it to the site, work until it stands.
+
+        Without an open site of this kind the NPC starts one at home (see _found).
+        """
+        obs = s.obs
         if s.cell == site_cell:
-            return action
+            if obs.here_amount >= wood_needed or obs.carried_wood > 0:
+                return action                       # work on it, or bring in the wood in hand
+            return self._fetch_wood(s)
         site = s.near(kind)
-        if site is not None:
+        if site is None:
+            return self._found(s, action)
+        known = s.member.map.known_amount(site)
+        full_hands = s.carried >= self._inventory
+        if known >= wood_needed or full_hands or (obs.carried_wood > 0 and obs.carried_wood >= wood_needed - known):
             return s.go(site)
-        return action
+        return self._fetch_wood(s)
+
+    def _fetch_wood(self, s: Situation) -> int:
+        if s.cell == pb.CELL_TREE:
+            return pb.ACTION_GATHER
+        tree = s.near("tree")
+        return s.go(tree) if tree is not None else self._explore(s)
+
+    def _found(self, s: Situation, action: int) -> int:
+        """Starts a site at home: within HOME_REACH of the nearest store, or of water before the first store."""
+        home = s.near("store") or s.near("water")
+        if home is not None and abs(home[0] - s.obs.x) + abs(home[1] - s.obs.y) > HOME_REACH:
+            return s.go(home)
+        if s.cell == pb.CELL_EMPTY and s.here not in s.member.map.food_spots:
+            return action
+        step = self._step_to_empty(s)
+        return step if step is not None else self._explore(s)
+
+    @staticmethod
+    def _step_to_empty(s: Situation) -> int | None:
+        """A step onto a neighbouring empty cell where nothing grows, if there is one in sight."""
+        size = s.obs.view_size or 3
+        centre = (size // 2) * size + size // 2
+        food_spots = s.member.map.food_spots
+        for action, dx, dy in MOVES:
+            if s.obs.surroundings[centre + dy * size + dx] == pb.CELL_EMPTY \
+                    and (s.obs.x + dx, s.obs.y + dy) not in food_spots:
+                return action
+        return None
 
     def _explore(self, s: Situation) -> int:
         """Walk towards a far point for a while, then pick another: cheap and it covers the board."""

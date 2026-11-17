@@ -1,12 +1,12 @@
 # Roadmapa
 
-Każdy etap kończy się czymś, co widać w oknie albo na wykresie. Etapy 1 i 2 są ukończone, a ich specyfikacje zawierają wyniki odbioru. Etap 3 ma plan z krokami w [docs/stage-3.md](docs/stage-3.md). Etapy 4–6 mają plany wstępne, które doprecyzujemy po wynikach poprzednich.
+Każdy etap kończy się czymś, co widać w oknie albo na wykresie. Etapy 1–3 są ukończone, a ich specyfikacje zawierają wyniki odbioru. Etapy 4–6 mają plany wstępne, które doprecyzujemy po wynikach poprzednich.
 
 | Etap | Nazwa | Skala | Status |
 |---|---|---|---|
 | 1 | Mała osada | 5 postaci, plansza 20×20 | Ukończony |
 | 2 | Wspólna wiedza | 12 postaci, kolejne pokolenia | Ukończony |
-| 3 | Tworzenie świata | 20–50 postaci, plansza 64×64, pory roku | W toku: kroki 3.1–3.12 gotowe, odbiór negatywny |
+| 3 | Tworzenie świata | 20–50 postaci, plansza 64×64, pory roku | Ukończony |
 | 4 | Przepisywanie reguł | jak w etapie 3 | Planowany |
 | 5 | Relacje między osadami | 3–5 osad | Planowany |
 | 6 | Rywalizacja | wiele osad | Planowany |
@@ -82,16 +82,17 @@ Postacie zmieniają świat, żeby przetrwać trudniejsze warunki.
 
 Plan z krokami: [docs/stage-3.md](docs/stage-3.md). Najważniejsze ustalenia planu: śmierć staje się ostateczna, osada ma jedną sieć zamiast tablicy na postać, a przed uczeniem osada ze scenariusza napisanego ręcznie dowodzi, że zimę da się przeżyć.
 
-**Odbiór (seed 42):** etap nie jest odebrany.
+Kroki i parametry: [docs/stage-3.md](docs/stage-3.md).
 
-| Osada | Wynik na docelowej konfiguracji |
-|---|---|
-| Scenariusz z samych umiejętności | przeżywa 5 zim, 22 postacie po pięciu latach |
-| Ten sam scenariusz bez budowania | wymiera w turze 1600 |
-| Najlepsza z 62 kopii sieci PPO | przeżywa 2 zimy, wymiera w turze 7925 |
-| Sieć PPO bez budowania | wymiera w turze 1600 |
+**Wyniki (seed 42, plansza 64×64, 20 założycieli, pięć lat):**
 
-Sieć sprawdzona na świecie etapu 2 dochodzi do 1990–2000 tur między upadkami przy poziomie dorosłych 434. Na świecie etapu 3 uczy się w programie, w którym scenariusz prowadzi osadę coraz krócej. W połowie ostatniego etapu, już bez scenariusza, osada sama budowała do 9 magazynów, wchodziła w zimę z 81–96 porcjami i przeżywała pierwszą zimę w 85% epizodów, choć świat nie nagradza ani sadzenia, ani magazynowania. Najlepsza zapisana kopia sieci gromadzi zapas (159 porcji przed pierwszą zimą), ale stawia jedno schronienie na 4 miejsca, więc zimę przeżywa tylko czwórka postaci. Kolejne kroki opisuje [docs/stage-3.md](docs/stage-3.md), sekcja „Co dalej po odbiorze”.
+| Osada | Przeżyte zimy | Postacie po pięciu latach | Zapas przed zimą |
+|---|---|---|---|
+| Sieć PPO (jedna na osadę) | 5 | 23 | 246–278 |
+| Ta sama sieć bez budowania | 0, wymiera w turze 1600 | 0 | 0 |
+| Scenariusz z samych umiejętności | 5 | 26 | 381–399 |
+
+Sieć wybiera spośród jedenastu umiejętności złożonych (pij, jedz, zbieraj, buduj, schroń się i inne). Uczyła się w programie, w którym scenariusz prowadził osadę coraz krócej, a potem już sama. Świat nagradza tylko przeżycie, jedzenie przy głodzie i przeżytą zimę, nie sadzenie, magazynowanie ani budowanie. Najtrudniejsze okazało się zakładanie budynków: działało dopiero wtedy, gdy umiejętność „buduj” sama chodziła po drewno i kończyła budynek. Uczenie jest niestabilne: kryterium spełnia jedna z kilkudziesięciu zapisanych kopii sieci, więc etap 4 startuje od tej konkretnej sieci.
 
 ![Okno trybu pokazu w etapie 3](docs/img/stage-3-show.png)
 

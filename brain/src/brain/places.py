@@ -16,6 +16,8 @@ BLOCKING = frozenset((pb.CELL_WALL, pb.CELL_LAVA))
 WINTER = 4
 # Cells whose amount the world reports while the NPC stands on them.
 _COUNTED = frozenset((pb.CELL_STORE, pb.CELL_SITE_SHELTER, pb.CELL_SITE_STORE, pb.CELL_FIELD_RIPE))
+# The amount of a counted cell nobody has stood on yet: a store seen from the side may hold food.
+UNKNOWN = -1
 
 
 class PlaceMap:
@@ -44,7 +46,7 @@ class PlaceMap:
                 if known is None or known[0] != cell or known[2] != observation.here_amount:
                     self._set(position, cell, tick, observation.here_amount)
             elif known is None or known[0] != cell:
-                self._set(position, cell, tick, 0)
+                self._set(position, cell, tick, UNKNOWN if cell in _COUNTED else 0)
             elif cell == pb.CELL_EMPTY and position in self.food_spots and tick - known[1] >= self._food_retry_ticks:
                 # Still empty after the retry time: wait again before the next visit.
                 self._set(position, cell, tick, 0)
@@ -57,6 +59,8 @@ class PlaceMap:
             position, cell, tick, amount = log[index]
             known = self.cells.get(position)
             if known is None or tick > known[1]:
+                if amount == UNKNOWN and known is not None and known[0] == cell:
+                    continue            # a glance from the side says nothing new about what lies there
                 self._set(position, cell, tick, amount)
         self._taken[other_id] = len(log)
 
@@ -84,8 +88,13 @@ class PlaceMap:
         return result
 
     def amount(self, position: Position) -> int:
+        """What lies on a counted cell as last seen; UNKNOWN (-1) when nobody has stood on it."""
         known = self.cells.get(position)
         return known[2] if known is not None else 0
+
+    def known_amount(self, position: Position) -> int:
+        """The amount as a count: unknown counts as nothing."""
+        return max(0, self.amount(position))
 
     def cell(self, position: Position) -> int | None:
         known = self.cells.get(position)

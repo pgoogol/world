@@ -44,7 +44,8 @@ class SkillScriptSettlement:
         self._seed = seed
         self._inventory = inventory_size
         self._food_retry_ticks = food_retry_ticks
-        self.skills = Skills(inventory_size, board)
+        self.skills = Skills(inventory_size, board, shelter_wood=scenario.shelter_wood, store_wood=scenario.store_wood,
+                             store_capacity=scenario.store_capacity)
         self.members: dict[int, Member] = {}
         self.choice_counts = [0] * self.skills.count
 
@@ -131,7 +132,7 @@ class SkillScriptSettlement:
         obs = s.obs
         site = s.near(kind)
         if site is not None:
-            if place_map.amount(site) >= wood_needed or obs.carried_wood > 0:
+            if place_map.known_amount(site) >= wood_needed or obs.carried_wood > 0:
                 return skill
             if s.carried >= self._inventory:
                 return None             # hands full of food: the gathering rules take it to a store

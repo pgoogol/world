@@ -79,7 +79,17 @@ def test_eat_walks_to_the_nearer_of_wild_food_and_a_stocked_store():
 
 
 def test_eat_is_not_offered_when_the_only_store_is_empty():
-    assert "eat" not in offered(situation({(2, 0): S}))
+    member = new_member()
+    situation({(0, 0): S}, x=14, y=10, here=0, member=member)          # stood on it: empty
+
+    assert "eat" not in offered(situation(member=member))
+
+
+def test_store_seen_only_from_the_side_is_worth_a_look():
+    hungry_newborn = situation({(2, 0): S}, hunger=70)
+
+    assert "eat" in offered(hungry_newborn)
+    assert SKILLS.action(EAT, hungry_newborn) == pb.ACTION_RIGHT
 
 
 def test_gather_food_picks_up_and_needs_room():
@@ -122,14 +132,47 @@ def test_plant_is_not_offered_where_wild_food_grows():
 
 def test_build_starts_a_site_only_when_none_is_known():
     assert SKILLS.action(BUILD_SHELTER, situation()) == pb.ACTION_BUILD_SHELTER
-    assert SKILLS.action(BUILD_SHELTER, situation({(3, 0): SITE_H})) == pb.ACTION_RIGHT
+    assert SKILLS.action(BUILD_SHELTER, situation({(3, 0): SITE_H}, wood=4)) == pb.ACTION_RIGHT
     assert SKILLS.action(BUILD_SHELTER, situation({(0, 0): SITE_H}, wood=1)) == pb.ACTION_BUILD_SHELTER
 
 
 def test_shelter_and_store_sites_are_kept_apart():
     assert SKILLS.action(BUILD_STORE, situation({(3, 0): SITE_H})) == pb.ACTION_BUILD_STORE
-    assert SKILLS.action(BUILD_STORE, situation({(3, 0): SITE_H, (0, 2): SITE_S})) == pb.ACTION_DOWN
+    assert SKILLS.action(BUILD_STORE, situation({(3, 0): SITE_H, (0, 2): SITE_S}, wood=4)) == pb.ACTION_DOWN
     assert "build_store" not in offered(situation({(0, 0): T}))
+
+
+def test_build_fetches_wood_for_a_site_that_lacks_it():
+    places = {(3, 0): SITE_H, (-2, 0): T}
+
+    assert SKILLS.action(BUILD_SHELTER, situation(places)) == pb.ACTION_LEFT
+    assert SKILLS.action(BUILD_SHELTER, situation({(3, 0): SITE_H, (0, 0): T})) == pb.ACTION_GATHER
+    assert SKILLS.action(BUILD_SHELTER, situation({(0, 0): SITE_H, (-2, 0): T}, here=2)) == pb.ACTION_LEFT
+
+
+def test_build_brings_a_load_once_it_covers_what_the_site_lacks():
+    member = new_member()
+    situation({(0, 0): SITE_H}, x=15, y=10, here=4, member=member)       # seen with 4 of 6 wood
+
+    assert SKILLS.action(BUILD_SHELTER, situation({(-2, 0): T}, wood=1, member=member)) == pb.ACTION_LEFT
+    assert SKILLS.action(BUILD_SHELTER, situation({(-2, 0): T}, wood=2, member=member)) == pb.ACTION_RIGHT
+
+
+def test_build_works_on_a_site_that_has_all_its_wood():
+    assert SKILLS.action(BUILD_SHELTER, situation({(0, 0): SITE_H}, here=6)) == pb.ACTION_BUILD_SHELTER
+    assert SKILLS.action(BUILD_STORE, situation({(0, 0): SITE_S}, here=4)) == pb.ACTION_BUILD_STORE
+
+
+def test_new_site_goes_next_to_the_store():
+    far = situation({(3, 0): S}, x=10, y=10)
+    assert SKILLS.action(BUILD_SHELTER, situation({(3, 3): S})) == pb.ACTION_RIGHT
+    assert SKILLS.action(BUILD_SHELTER, far) == pb.ACTION_BUILD_SHELTER
+    assert SKILLS.action(BUILD_SHELTER, situation({(0, 0): T, (1, 0): S})) in (pb.ACTION_UP, pb.ACTION_DOWN)
+
+
+def test_without_a_store_the_first_site_goes_next_to_water():
+    assert SKILLS.action(BUILD_STORE, situation({(-3, -3): W})) == pb.ACTION_LEFT
+    assert SKILLS.action(BUILD_STORE, situation({(-1, -1): W})) == pb.ACTION_BUILD_STORE
 
 
 def test_take_shelter_walks_to_a_shelter_and_stays():
@@ -186,3 +229,28 @@ def test_raw_actions_offer_the_walk_only_towards_a_needed_known_place():
     assert raw.action(6, thirsty) == pb.ACTION_RIGHT
     assert raw.action(6, situation({(0, 0): W}, thirst=60)) == pb.ACTION_CONSUME
     assert raw.action(5, thirsty) == pb.ACTION_CONSUME
+
+
+def test_new_store_only_when_every_known_store_is_full():
+    member = new_member()
+    situation({(0, 0): S}, x=14, y=10, here=40, member=member)          # a store with room left
+
+    assert "build_store" not in offered(situation(member=member))
+    assert "build_store" in offered(situation({(2, 0): SITE_S}, member=member))   # joining a site is fine
+
+    full = new_member()
+    situation({(0, 0): S}, x=14, y=10, here=80, member=full)
+    assert "build_store" in offered(situation(member=full))
+
+
+def test_store_seen_only_from_the_side_counts_as_not_full():
+    assert "build_store" not in offered(situation({(2, 0): S}))
+    assert "build_store" in offered(situation())
+
+
+def test_only_a_building_skill_without_an_open_site_starts_one():
+    assert Skills.starts_site(BUILD_SHELTER, situation())
+    assert not Skills.starts_site(BUILD_SHELTER, situation({(3, 0): SITE_H}))
+    assert not Skills.starts_site(BUILD_SHELTER, situation({(0, 0): SITE_H}))
+    assert Skills.starts_site(BUILD_STORE, situation({(3, 0): SITE_H}))
+    assert not Skills.starts_site(DRINK, situation())

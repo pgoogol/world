@@ -38,7 +38,10 @@ def build_choices(config: BrainConfig, build: bool = True):
         enabled = None
         if not build:
             enabled = frozenset(i for i, name in enumerate(Skills.names) if name not in NO_BUILDING)
-        return Skills(network.inventory_size, (network.board_width, network.board_height), enabled)
+        scenario = config.scenario
+        wood = {"shelter_wood": scenario.shelter_wood, "store_wood": scenario.store_wood,
+                "store_capacity": scenario.store_capacity} if scenario else {}
+        return Skills(network.inventory_size, (network.board_width, network.board_height), enabled, **wood)
     raise ValueError(f"Unknown brain.network.choices: {network.choices!r}")
 
 
@@ -52,9 +55,11 @@ class NetworkSettlement:
         self._learning = learning
         self._save_path = save_path
         self.choices = build_choices(config, build)
-        # The one skill whose work is standing still: sitting out the winter in a shelter.
+        # Skills that go on after they act: sitting out the winter in a shelter, and building, which
+        # takes many trips for wood and many ticks of work.
         names = self.choices.names
-        self._stay_skill = names.index("take_shelter") if "take_shelter" in names else None
+        self._lasting_skills = frozenset(names.index(name) for name in ("take_shelter", "build_shelter", "build_store")
+                                         if name in names)
         self.ppo = Ppo(self._network.view_size ** 2, SCALARS, self.choices.count, self._network, config.seed)
         # Ticks this network has learned from, over all runs; they shorten the warm-up.
         self.learned_ticks = 0
@@ -143,7 +148,8 @@ class NetworkSettlement:
             member = situation.member
             note_full_shelter(member, situation, self._config.need_levels[1])
             mask = self.choices.mask(situation)
-            if member.choice is not None and tick < member.decide_at and mask[member.choice]:
+            if member.choice is not None and tick < member.decide_at and mask[member.choice] \
+                    and not self.choices.starts_site(member.choice, situation):
                 continue
             self._close(member)
             deciding.append(situation)
@@ -175,7 +181,7 @@ class NetworkSettlement:
         for view, situation in zip(request.npcs, situations):
             member = situation.member
             action = self.choices.action(member.choice, situation)
-            if action not in MOVES and member.choice != self._stay_skill:
+            if action not in MOVES and member.choice not in self._lasting_skills:
                 # The skill has done its work (drunk, eaten, picked up, built one step): the NPC chooses
                 # again next tick instead of standing there, in winter out in the cold.
                 member.decide_at = tick + 1
@@ -326,7 +332,7 @@ class NetworkSettlement:
         shelters = place_map.by_type.get(pb.CELL_SHELTER, ())
         stores = place_map.by_type.get(pb.CELL_STORE, ())
         row.append(min(1.0, len(shelters) / 10))
-        row.append(min(1.0, sum(place_map.amount(p) for p in stores) / 100))
+        row.append(min(1.0, sum(place_map.known_amount(p) for p in stores) / 100))
         return row
 
     def _swap_maps(self, request: pb.StepRequest) -> None:

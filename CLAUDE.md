@@ -7,13 +7,13 @@ Symulacja świata NPC: postacie startują bez żadnej wiedzy, uczą się metodą
 Przeczytaj je przed pierwszą zmianą w sesji:
 
 - `ROADMAP.md`: wszystkie etapy, status i kryteria ukończenia.
-- `docs/stage-1.md`, `docs/stage-2.md`: specyfikacje ukończonych etapów, parametry, kroki i wyniki odbioru.
-- `docs/stage-3.md`: plan bieżącego etapu z krokami. `docs/stage-4.md`, `docs/stage-5.md`, `docs/stage-6.md`: plany wstępne kolejnych etapów, do doprecyzowania po odbiorze poprzedniego.
+- `docs/stage-1.md`, `docs/stage-2.md`, `docs/stage-3.md`: specyfikacje ukończonych etapów, parametry, kroki i wyniki odbioru.
+- `docs/stage-4.md`: plan wstępny bieżącego etapu, do doprecyzowania w pierwszym kroku. `docs/stage-5.md`, `docs/stage-6.md`: plany wstępne kolejnych etapów.
 - `docs/ARCHITECTURE.md`: technologie, kontrakt gRPC i decyzje z uzasadnieniem.
 
 ## Jak pracujemy
 
-- Bieżący krok to pierwszy nieodhaczony krok w specyfikacji bieżącego etapu (etapy 1 i 2 są ukończone, bieżący to etap 3; jego odbiór, krok 3.13, wypadł negatywnie i czeka na decyzję z `docs/stage-3.md`). Rób jeden krok naraz i kończ go dopiero, gdy spełnia warunek „Gotowe, gdy”.
+- Bieżący krok to pierwszy nieodhaczony krok w specyfikacji bieżącego etapu (etapy 1–3 są ukończone, bieżący to etap 4; jego specyfikacja jest jeszcze planem wstępnym). Rób jeden krok naraz i kończ go dopiero, gdy spełnia warunek „Gotowe, gdy”.
 - Nie dokładaj niczego z późniejszych etapów (model językowy, Unity), dopóki `ROADMAP.md` ich nie odblokuje.
 - Gdy specyfikacja czegoś nie rozstrzyga, zajrzyj do sekcji „Do decyzji” w specyfikacji etapu. Przyjmij wartość domyślną i opisz wybór w podsumowaniu kroku.
 - Po każdym kroku uruchom testy obu części i odhacz krok. Nową decyzję albo zmianę kontraktu dopisz do `docs/ARCHITECTURE.md`.
@@ -137,12 +137,23 @@ Z `--set brain.network.checkpoint_every_episodes=25` program zapisuje kopie siec
 uv run --group nn python scripts/best.py --name s3-r --set brain.network.skill_ticks=16
 ```
 
-Pomiar wytrenowanej sieci na pięciu latach, bez uczenia:
+Odebrana sieć etapu 3 leży w repozytorium jako `brain/models/stage-3-network.pt`. Pomiar na pięciu latach wymaga jej w katalogu danych, bo serwer szuka `network.pt`:
+
+```
+New-Item -ItemType Directory -Force data\s3-z2-best; Copy-Item models\stage-3-network.pt data\s3-z2-best
+etwork.pt
+uv run --group nn python scripts/train.py --variant network --config ../config/stage-3.yaml --name s3-z2-best --data-dir data/s3-z2-best --evaluate --settlement
+uv run python scripts/winters.py --runs s3-z2-best-eval
+```
+
+Pomiar dowolnej wytrenowanej sieci na pięciu latach, bez uczenia:
 
 ```
 uv run --group nn python scripts/train.py --variant network --config ../config/stage-3.yaml --name s3-network --evaluate --settlement
 uv run python scripts/winters.py --runs s3-network-eval
 ```
+
+Windows potrafi zarezerwować zakresy portów (`netsh int ipv4 show excludedportrange protocol=tcp`). Gdy serwer mózgów nie może się podpiąć do 50051, dodaj do `train.py` i skryptów `--set brain.address=localhost:<wolny port>` (na przykład 50301), a do `brain.server` przekaż konfigurację z tym samym adresem.
 
 Pomiar tempa etapu 3, w katalogu `brain/` (wiersz z siecią wymaga grupy `nn`):
 
@@ -176,6 +187,7 @@ Tryb pokazu etapu 3: serwer w katalogu `brain/` (scenariusz z umiejętności alb
 
 ```
 uv run python -m brain.server --config ../config/stage-3.yaml --kind skills-scripted --mode show
+uv run --group nn python -m brain.server --config ../config/stage-3.yaml --kind network --mode show --data-dir data/s3-z2-best
 ```
 
 ```

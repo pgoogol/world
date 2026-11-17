@@ -379,3 +379,30 @@ def test_update_stops_once_the_policy_moved_too_far():
 
     assert tight.stopped_early and not loose.stopped_early
     assert 0.5 < preference(tight) < preference(loose)
+
+
+def test_building_keeps_the_skill_after_it_acts():
+    settlement = NetworkSettlement(stage3(skill_ticks=16))
+    site_here = [E] * 49
+    site_here[24] = pb.CELL_SITE_SHELTER
+    obs = pb.Observation(surroundings=site_here, view_size=7, x=10, y=10, energy=100, season=1, carried_wood=2)
+    settlement.step(request(0, pb.NpcView(npc_id=0, observation=obs)))
+    member = settlement.members[0]
+    member.choice, member.decide_at = settlement.choices.names.index("build_shelter"), 16
+
+    response = settlement.step(request(1, pb.NpcView(npc_id=0, observation=obs)))
+
+    assert response.actions[0].action == pb.ACTION_BUILD_SHELTER
+    assert member.decide_at == 16
+
+
+def test_finished_building_does_not_roll_over_into_a_new_site():
+    settlement = NetworkSettlement(stage3(skill_ticks=16))
+    obs = pb.Observation(surroundings=[E] * 49, view_size=7, x=10, y=10, energy=100, season=1)
+    settlement.step(request(0, pb.NpcView(npc_id=0, observation=obs)))
+    member = settlement.members[0]
+    member.choice, member.decide_at = settlement.choices.names.index("build_shelter"), 16   # no site left
+
+    settlement.step(request(1, pb.NpcView(npc_id=0, observation=obs)))
+
+    assert member.decide_at != 16          # the NPC chose again instead of starting the next shelter

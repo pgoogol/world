@@ -135,3 +135,22 @@ def test_move_towards_walks_around_an_obstacle_in_the_way():
     action = move_towards(view(5, 5, {(1, 0): L}, size=7), (8, 5))
 
     assert action in (pb.ACTION_UP, pb.ACTION_DOWN)
+
+
+def test_amount_of_a_store_seen_only_from_the_side_is_unknown():
+    seen = PlaceMap(50)
+
+    seen.see(view(5, 5, {(1, 0): S}), tick=1)
+
+    assert seen.amount((6, 5)) == -1
+    assert seen.known_amount((6, 5)) == 0
+
+
+def test_a_glance_from_the_side_does_not_erase_a_known_amount():
+    mine, theirs = PlaceMap(50), PlaceMap(50)
+    mine.see(view(5, 5, {(0, 0): S}, here=30), tick=1)
+    theirs.see(view(6, 5, {(-1, 0): S}), tick=9)
+
+    mine.merge(theirs, other_id=1)
+
+    assert mine.amount((5, 5)) == 30
